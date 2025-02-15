@@ -1,0 +1,110 @@
+###############################################################################
+# 1) Tekton Pipeline
+###############################################################################
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: build-and-push-image
+  namespace: planton-cloud-pipelines
+spec:
+  params:
+    - name: git-url
+      type: string
+      description: "The Git URL to clone"
+
+    - name: git-revision
+      type: string
+      description: "Git revision to checkout"
+      default: "main"
+
+    - name: image-name
+      type: string
+      description: "The final image name to be built/pushed"
+
+  # Single workspace that tasks will share
+  workspaces:
+    - name: source
+      description: "Workspace that stores source code & build artifacts"
+
+  tasks:
+    #################################################################
+    # 1) GIT-CHECKOUT
+    #################################################################
+    - name: git-checkout
+      taskRef:
+        resolver: hub
+        params:
+          - name: type
+            value: tekton
+          - name: kind
+            value: task
+          - name: name
+            value: git-clone
+          - name: version
+            value: "0.9"
+      params:
+        - name: url
+          value: "$(params.git-url)"       # pipeline param
+        - name: revision
+          value: "$(params.git-revision)"  # pipeline param
+        - name: deleteExisting
+          value: "true"
+        - name: subDirectory
+          value: ""  # no extra nesting
+        # If your commit is old or not on default HEAD, consider disabling shallow clone:
+        # - name: depth
+        #   value: "0"
+      workspaces:
+        - name: output
+          workspace: source
+
+    #################################################################
+    # 2) LIST-FILES (inline)
+    #################################################################
+    - name: list-files
+      runAfter:
+        - git-checkout
+      taskSpec:
+        steps:
+          - name: list
+            image: alpine:3.18
+            script: |
+              echo "=== Listing /workspace/output (recursively) ==="
+              ls -R /workspace/output || true
+        workspaces:
+          - name: output
+      workspaces:
+        - name: output
+          workspace: source
+
+    #################################################################
+    # 3) BUILD-IMAGE (with Buildpacks)
+    #################################################################
+    - name: build-image
+      runAfter:
+        - list-files
+      taskRef:
+        resolver: hub
+        params:
+          - name: type
+            value: tekton
+          - name: kind
+            value: task
+          - name: name
+            value: buildpacks
+          - name: version
+            value: "0.6"
+      params:
+        - name: BUILDER_IMAGE
+          value: "paketobuildpacks/builder:base"
+        - name: PROCESS_TYPE
+          value: ""
+        - name: PATH
+          value: "."  # looks in /workspace/source/
+        - name: APP_IMAGE
+          value: "$(params.image-name)"
+        - name: PUSH_IMAGE
+          value: "false"
+      workspaces:
+        - name: source
+          workspace: source
