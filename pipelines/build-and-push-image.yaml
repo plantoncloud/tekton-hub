@@ -105,10 +105,8 @@ spec:
       # the `environments` param is NOT equal to the literal "[]"
       # (which is how Tekton represents an empty array).
       when:
-        - input: "$(params.environments)"
-          operator: notin
-          values:
-            - "[]"
+        - input: "length(params.environments) > 0"
+          operator: "evaluates"
       taskRef:
         resolver: git
         params:
