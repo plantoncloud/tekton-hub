@@ -1,10 +1,10 @@
 ###############################################################################
-# Tekton Pipeline
+# Tekton Pipeline using CEL in WhenExpressions
 ###############################################################################
 apiVersion: tekton.dev/v1
 kind: Pipeline
 metadata:
-  name: build-and-push-image
+  name: build-and-push-image-cel
   namespace: planton-cloud-pipelines
 spec:
   params:
@@ -24,9 +24,10 @@ spec:
     - name: environments
       type: array
       default: []
-      description: "List of environment names (e.g. [\"dev\",\"prod\"]). If empty, skip manifest generation."
+      description: |
+        List of environment names. If empty ( [] ), the generate-service-manifests 
+        task will be skipped via CEL expression.
 
-  # Single workspace that tasks will share
   workspaces:
     - name: source
       description: "Workspace that stores source code & build artifacts"
@@ -49,22 +50,17 @@ spec:
             value: "0.9"
       params:
         - name: url
-          value: "$(params.git-url)"       # pipeline param
+          value: "$(params.git-url)"
         - name: revision
-          value: "$(params.git-revision)"  # pipeline param
+          value: "$(params.git-revision)"
         - name: deleteExisting
           value: "true"
-        - name: subDirectory
-          value: ""  # no extra nesting
-        # If your commit is old or not on default HEAD, you could disable shallow clone:
-        # - name: depth
-        #   value: "0"
       workspaces:
         - name: output
           workspace: source
 
     #################################################################
-    # 2) BUILD-IMAGE (with Buildpacks)
+    # 2) BUILD-IMAGE (with Buildpacks) - Optional Example
     #################################################################
     - name: build-image
       runAfter:
@@ -86,7 +82,7 @@ spec:
         - name: PROCESS_TYPE
           value: ""
         - name: PATH
-          value: "."  # looks in /workspace/source/
+          value: "."
         - name: APP_IMAGE
           value: "$(params.image-name)"
         - name: PUSH_IMAGE
@@ -96,17 +92,14 @@ spec:
           workspace: source
 
     #################################################################
-    # 3) GENERATE-SERVICE-MANIFESTS (Kustomize-based)
+    # 3) GENERATE-SERVICE-MANIFESTS (Using CEL to skip if empty)
     #################################################################
     - name: generate-service-manifests
       runAfter:
         - git-checkout
-      # This "when" expression ensures we only run this task if
-      # the `environments` param is NOT equal to the literal "[]"
-      # (which is how Tekton represents an empty array).
+      # Enable the CEL feature flag, then use a single 'cel' expression:
       when:
-        - input: "length(params.environments) > 0"
-          operator: "evaluates"
+        - cel: "'$(params.environments)' != '[]'"
       taskRef:
         resolver: git
         params:
@@ -115,15 +108,12 @@ spec:
           - name: revision
             value: "main"
           - name: pathInRepo
-            value: "tasks/generate-service-manifests.yaml"
-
-      # Pass our Pipeline params to the Task
+            value: "pipelines/tasks/generate-service-manifests.yaml"
       params:
         - name: environments
           value: "$(params.environments)"
         - name: kustomizeDir
           value: "./_kustomize"
-
       workspaces:
         - name: source
           workspace: source
