@@ -1,5 +1,5 @@
 ###############################################################################
-# 1) Tekton Pipeline
+# Tekton Pipeline
 ###############################################################################
 apiVersion: tekton.dev/v1
 kind: Pipeline
@@ -59,30 +59,11 @@ spec:
           workspace: source
 
     #################################################################
-    # 2) LIST-FILES (inline)
-    #################################################################
-    - name: list-files
-      runAfter:
-        - git-checkout
-      taskSpec:
-        steps:
-          - name: list
-            image: alpine:3.18
-            script: |
-              echo "=== Listing /workspace/output (recursively) ==="
-              ls -R /workspace/output || true
-        workspaces:
-          - name: output
-      workspaces:
-        - name: output
-          workspace: source
-
-    #################################################################
-    # 3) BUILD-IMAGE (with Buildpacks)
+    # BUILD-IMAGE (with Buildpacks)
     #################################################################
     - name: build-image
       runAfter:
-        - list-files
+        - git-checkout
       taskRef:
         resolver: hub
         params:
