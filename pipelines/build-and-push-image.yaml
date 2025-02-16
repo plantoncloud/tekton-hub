@@ -21,6 +21,11 @@ spec:
       type: string
       description: "The final image name to be built/pushed"
 
+    - name: environments
+      type: array
+      default: []
+      description: "List of environment names (e.g. [\"dev\",\"prod\"]). If empty, skip manifest generation."
+
   # Single workspace that tasks will share
   workspaces:
     - name: source
@@ -51,7 +56,7 @@ spec:
           value: "true"
         - name: subDirectory
           value: ""  # no extra nesting
-        # If your commit is old or not on default HEAD, consider disabling shallow clone:
+        # If your commit is old or not on default HEAD, you could disable shallow clone:
         # - name: depth
         #   value: "0"
       workspaces:
@@ -59,7 +64,7 @@ spec:
           workspace: source
 
     #################################################################
-    # BUILD-IMAGE (with Buildpacks)
+    # 2) BUILD-IMAGE (with Buildpacks)
     #################################################################
     - name: build-image
       runAfter:
@@ -86,6 +91,41 @@ spec:
           value: "$(params.image-name)"
         - name: PUSH_IMAGE
           value: "false"
+      workspaces:
+        - name: source
+          workspace: source
+
+    #################################################################
+    # 3) GENERATE-SERVICE-MANIFESTS (Kustomize-based)
+    #################################################################
+    - name: generate-service-manifests
+      runAfter:
+        - git-checkout
+      # This "when" expression ensures we only run this task if
+      # the `environments` param is NOT equal to the literal "[]"
+      # (which is how Tekton represents an empty array).
+      when:
+        - input: "$(params.environments)"
+          operator: notin
+          values:
+            - "[]"
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: "https://github.com/plantoncloud/tekton-hub.git"
+          - name: revision
+            value: "main"
+          - name: pathInRepo
+            value: "tasks/generate-service-manifests.yaml"
+
+      # Pass our Pipeline params to the Task
+      params:
+        - name: environments
+          value: "$(params.environments)"
+        - name: kustomizeDir
+          value: "./_kustomize"
+
       workspaces:
         - name: source
           workspace: source
