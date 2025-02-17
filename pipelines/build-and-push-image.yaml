@@ -97,9 +97,16 @@ spec:
     - name: generate-service-manifests
       runAfter:
         - git-checkout
-      # Enable the CEL feature flag, then use a single 'cel' expression:
-      when:
-        - cel: "'$(params.environments)' != '[]'"
+      # Tekton currently does NOT support whole-array substitution in CEL
+      # The Tekton documentation (as of early 2025) explicitly says:
+      # Whole Array and Object replacements are not supported yet.
+      # That means you cannot do something like:
+      # if environments is declared as type: array. Tekton will treat $(params.environments) as a string (e.g., ["dev","prod"]) 
+      # and attempt to evaluate .size() on that string, or it might outright fail validation because it 
+      # doesn’t support substituting the entire array.
+      # so disabling the when check for now
+      # when:
+      #   - cel: "size($(params.environments)) > 1"
       taskRef:
         resolver: git
         params:
