@@ -42,14 +42,14 @@ spec:
         # Tekton passes arrays to bash steps in multiple ways.
         # If your Tekton version merges the array into a single string, you might need to parse it.
         # The approach below uses a space-separated expansion. Adjust if needed.
-        environments=($(printf "%s\n" "$(params.environments[@])"))
+        environments=($(printf "%s\n" "$(params.environments)"))
 
         # Initialize a JSON object
         # We'll start with "{" and end with "}". We'll track whether it's our first entry.
         result_json="{"
         first_entry=true
 
-        for env in "${environments[@]}"; do
+        for env in "${environments}"; do
           echo "Processing environment: $env"
 
           # Move into the directory that contains base and overlays
