@@ -120,7 +120,7 @@ spec:
         - name: environments
           value: ["$(params.environments[*])"]
         - name: kustomizeDir
-          value: "./_kustomize"
+          value: "_kustomize"
       workspaces:
         - name: source
           workspace: source
