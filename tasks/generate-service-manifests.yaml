@@ -30,63 +30,56 @@ spec:
   steps:
     - name: generate-service-manifests
       image: bitnami/kubectl:latest
-      #
-      # Tekton will automatically run the script below as /bin/sh -c (or bash),
-      # so do NOT specify `command:` or `args:` or Tekton will fail validation.
-      #
-      script: |
-        #!/usr/bin/env bash
-        set -euxo pipefail
+      command:
+        - /bin/bash
+      args:
+        # -c means "run the following script"
+        - -c
+        - |
+          #!/usr/bin/env bash
+          set -euxo pipefail
 
-        # The array param "environments" is expanded into a space-separated string
-        # in ENVIRONMENTS. We convert that into a real bash array:
-        IFS=' ' read -r -a environments <<< "$ENVIRONMENTS"
+          # The first argument is the kustomizeDir
+          kustomize_dir="$1"
+          shift
 
-        # KUSTOMIZE_DIR is just the string param for the kustomize folder
-        kustomize_dir="$KUSTOMIZE_DIR"
+          # The rest of the arguments are the environments
+          environments=("$@")
 
-        # Prepare our JSON string
-        result_json="{"
-        first_entry=true
+          result_json="{"
+          first_entry=true
 
-        for env in "${environments[@]}"; do
-          echo "Processing environment: $env"
-          cd "$kustomize_dir"
+          for env in "${environments[@]}"; do
+            echo "Processing environment: $env"
 
-          # Attempt to build the overlay for this environment
-          kustomize build "overlays/${env}" > service.yaml || {
-            echo "Kustomize build failed for environment $env, skipping."
-            cd -
-            continue
-          }
-
-          # If we successfully generated a service.yaml, base64-encode it
-          if [[ -f "service.yaml" ]]; then
-            encoded="$(base64 -w 0 service.yaml)"
-            if [[ "$first_entry" == "true" ]]; then
-              first_entry="false"
-            else
-              result_json="${result_json},"
+            cd "${kustomize_dir}"
+            if ! kustomize build "overlays/${env}" > service.yaml; then
+              echo "Kustomize build failed for environment '${env}'. Skipping."
+              cd -
+              continue
             fi
-            result_json="${result_json}\"${env}\":\"${encoded}\""
-          else
-            echo "No service.yaml found for environment $env."
-          fi
 
-          rm -f service.yaml
-          cd -
-        done
+            if [[ -f service.yaml ]]; then
+              encoded="$(base64 -w 0 service.yaml)"
+              if [[ "${first_entry}" == "true" ]]; then
+                first_entry="false"
+              else
+                result_json="${result_json},"
+              fi
+              result_json="${result_json}\"${env}\":\"${encoded}\""
+            else
+              echo "No service.yaml found for environment '${env}'."
+            fi
 
-        result_json="${result_json}}"
-        echo "Resulting JSON: $result_json"
+            rm -f service.yaml
+            cd -
+          done
 
-        # Write JSON to the Task result file
-        echo "$result_json" > "$(results.serviceManifests.path)"
-      #  
-      # Pass Tekton params via environment variables:
-      #
-      env:
-        - name: ENVIRONMENTS
-          value: "$(params.environments[*])"
-        - name: KUSTOMIZE_DIR
-          value: "$(params.kustomizeDir)"
+          result_json="${result_json}}"
+          echo "Resulting JSON: $result_json"
+
+          # Write to Task result
+          echo "$result_json" > "$(results.serviceManifests.path)"
+        # Now pass the actual Tekton params as separate arguments
+        - "$(params.kustomizeDir)"
+        - "$(params.environments[*])"
