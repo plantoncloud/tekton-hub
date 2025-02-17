@@ -3,10 +3,8 @@ kind: Task
 metadata:
   name: generate-service-manifests
   annotations:
-    # You can add ADR references or notes for traceability
     adr.example.com/reference: "KustomizeBasedTektonTask"
 spec:
-  # 1) Define input parameters
   params:
     - name: environments
       type: array
@@ -19,18 +17,16 @@ spec:
         Typically './_kustomize'.
       default: ./_kustomize
 
-  # 2) Define one result to hold environment→service.yaml
   results:
     - name: serviceManifests
       description: >
-        A JSON object with environment as the key and the base64-encoded content 
+        A JSON object with environment as the key and the base64-encoded content
         of service.yaml as the value. e.g.:
         {
           "dev": "LS0tIHNlcnZpY2UuLi4=",
           "prod": "LS0tIHNlcnZpY2UuLi4="
         }
 
-  # 3) The Task steps
   steps:
     - name: generate-service-manifests
       image: bitnami/kubectl:latest
@@ -38,64 +34,33 @@ spec:
         #!/usr/bin/env bash
         set -euxo pipefail
 
-        # Convert Tekton array param into a bash array
-        # Tekton passes arrays to bash steps in multiple ways.
-        # If your Tekton version merges the array into a single string, you might need to parse it.
-        # The approach below uses a space-separated expansion. Adjust if needed.
         environments=($(printf "%s\n" "$(params.environments)"))
-
-        # Initialize a JSON object
-        # We'll start with "{" and end with "}". We'll track whether it's our first entry.
         result_json="{"
         first_entry=true
 
         for env in "${environments}"; do
           echo "Processing environment: $env"
-
-          # Move into the directory that contains base and overlays
           cd "$(params.kustomizeDir)"
-
-          # Run kustomize build; redirect output to a local file "service.yaml" (or your choice)
-          # e.g. kustomize build overlays/dev > service.yaml
-          # Or if the structure is such that each overlay has its own "service.yaml", you might only do a copy or something similar.
-        
           kustomize build "overlays/${env}" > service.yaml || {
             echo "Kustomize build failed for environment $env, skipping."
-            # We can skip or fail here, depending on your preference.
-            cd - # go back to original dir
+            cd -
             continue
           }
-
-          # Now check if service.yaml was created
           if [[ -f "service.yaml" ]]; then
-            # Base64-encode the service.yaml so we can store it safely in JSON
-            # -w 0 ensures there's no line wrapping.
             encoded=$(base64 -w 0 service.yaml)
-
-            # Build the JSON map entry for this environment
-            # If not the first entry, add a comma
             if [[ "$first_entry" == true ]]; then
               first_entry=false
             else
               result_json="${result_json},"
             fi
-
-            # Append "env":"encoded_content"
             result_json="${result_json}\"${env}\":\"${encoded}\""
           else
             echo "No service.yaml found for environment $env."
           fi
-
-          # Optionally remove or keep the file
           rm -f service.yaml
-
-          # Return to the original directory (one level up from kustomizeDir)
           cd -
         done
 
-        # Close out the JSON
         result_json="${result_json}}"
-
-        # Write the JSON map into the Tekton result
         echo "Resulting JSON: $result_json"
         echo "$result_json" > "$(results.serviceManifests.path)"
