@@ -118,7 +118,7 @@ spec:
             value: "pipelines/tasks/generate-service-manifests.yaml"
       params:
         - name: environments
-          value: "$(params.environments)"
+          value: ["$(params.environments[*])"]
         - name: kustomizeDir
           value: "./_kustomize"
       workspaces:
