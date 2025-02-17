@@ -5,6 +5,10 @@ metadata:
   annotations:
     adr.example.com/reference: "KustomizeBasedTektonTask"
 spec:
+  workspaces:
+    - name: source
+      description: Directory where application source is located.
+
   params:
     - name: environments
       type: array
