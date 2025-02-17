@@ -18,8 +18,8 @@ spec:
       type: string
       description: |
         Path to the folder containing 'base' and 'overlays' subdirectories.
-        Typically './_kustomize'.
-      default: ./_kustomize
+        Typically '_kustomize'.
+      default: "_kustomize"
 
   results:
     - name: serviceManifests
