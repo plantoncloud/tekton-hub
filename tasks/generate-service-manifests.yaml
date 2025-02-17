@@ -17,9 +17,9 @@ spec:
     - name: kustomizeDir
       type: string
       description: |
-        Path to the folder containing 'base' and 'overlays' subdirectories.
-        Typically '_kustomize'.
-      default: "_kustomize"
+        Path (relative to /workspace/source) where you have 'base' and 'overlays'.
+        Typically `_kustomize` or `./_kustomize`.
+      default: _kustomize
 
   results:
     - name: serviceManifests
@@ -34,51 +34,52 @@ spec:
   steps:
     - name: generate-service-manifests
       image: bitnami/kubectl:latest
-      # We use 'command' + 'args' instead of script:, to avoid Tekton validation errors.
       command:
         - /bin/bash
       args:
-        # -c means "run the following script"
         - -c
         - |
           #!/usr/bin/env bash
           set -euxo pipefail
 
-          # The first argument is the kustomizeDir (or fallback to ./_kustomize).
-          kustomize_dir="${1:-./_kustomize}"
-          shift || true  # shift once to move past $1
+          # 1) Capture kustomizeDir from $1, or default to "_kustomize".
+          kustomize_dir="${1:-_kustomize}"
+          shift || true
 
-          # The remaining arguments are the environments (could be zero or more).
+          # 2) The remaining arguments are the environments.
           environments=("$@")
 
-          # Construct the result JSON
+          # 3) Construct the full path to the kustomize directory in the workspace.
+          full_path="$(workspaces.source.path)/${kustomize_dir}"
+
+          # 4) If the directory doesn't exist, produce an empty JSON and exit.
+          if [[ ! -d "${full_path}" ]]; then
+            echo "Directory '${full_path}' does not exist. Returning empty JSON."
+            echo "{}" > "$(results.serviceManifests.path)"
+            exit 0
+          fi
+
+          # 5) Move into the directory and proceed with kustomize for each environment.
+          cd "${full_path}"
+
           result_json="{"
           first_entry="true"
 
-          # Change directory to the workspace + the kustomizeDir.
-          # This means your kustomize base/overlays should be found under:
-          #   /workspace/source/<kustomize_dir>/
-          cd "$(workspaces.source.path)/${kustomize_dir}"
-
           for env in "${environments[@]}"; do
             echo "Processing environment: $env"
-
-            # For each env, run kustomize build from overlays/<env>.
+            
             if ! kustomize build "overlays/${env}" > service.yaml; then
               echo "Kustomize build failed for environment '${env}'. Skipping."
               continue
             fi
 
             if [[ -f service.yaml ]]; then
-              # Base64-encode service.yaml (no line wrapping).
               encoded="$(base64 -w 0 service.yaml)"
-
               if [[ "${first_entry}" == "true" ]]; then
                 first_entry="false"
               else
                 result_json="${result_json},"
               fi
-
               result_json="${result_json}\"${env}\":\"${encoded}\""
             else
               echo "No service.yaml found for environment '${env}'."
@@ -87,14 +88,10 @@ spec:
             rm -f service.yaml
           done
 
-          # Close the JSON object and print it.
           result_json="${result_json}}"
           echo "Resulting JSON: $result_json"
 
-          # Write to the Task result file.
+          # 6) Write final JSON to the Task result.
           echo "$result_json" > "$(results.serviceManifests.path)"
-        # Now pass Tekton params as separate arguments:
         - "$(params.kustomizeDir)"
         - "$(params.environments[*])"
-      # Optionally, you can specify a workingDir if needed, but here we `cd` in the script.
-      # workingDir: /workspace/source
