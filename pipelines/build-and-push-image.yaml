@@ -115,7 +115,7 @@ spec:
           - name: revision
             value: "main"
           - name: pathInRepo
-            value: "pipelines/tasks/generate-service-manifests.yaml"
+            value: "tasks/generate-service-manifests.yaml"
       params:
         - name: environments
           value: ["$(params.environments[*])"]
