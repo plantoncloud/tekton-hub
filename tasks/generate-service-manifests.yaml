@@ -29,14 +29,15 @@ spec:
         # 1) Define the path to the overlays directory within the source workspace.
         overlays_dir="/workspace/source/_kustomize/overlays"
 
-        # 2) If the _kustomize/overlays directory doesn't exist, produce an empty JSON and exit *successfully*.
+        # 2) If the overlays directory doesn't exist, produce an empty JSON and exit.
         if [[ ! -d "${overlays_dir}" ]]; then
           echo "Directory '${overlays_dir}' does not exist. Returning empty JSON."
           echo "{}" > "$(results.serviceManifests.path)"
           exit 0
         fi
 
-        # 3) Change into the "_kustomize" directory so that `kubectl kustomize` paths are correct.
+        # 3) Change into the "_kustomize" directory so the `kubectl kustomize` command
+        #    will be run relative to `overlays/`.
         cd "/workspace/source/_kustomize"
 
         result_json="{"
@@ -48,12 +49,15 @@ spec:
             env="$(basename "${env_dir}")"
             echo "Processing environment: ${env}"
 
-            # Because of `set -e`, if this fails, the script (and Task) will immediately fail.
-            kubectl kustomize "overlays/${env}" > service.yaml
+            # Use `kubectl kustomize` instead of `kustomize build`
+            if ! kubectl kustomize "overlays/${env}" > service.yaml; then
+              echo "Kustomize build failed for environment '${env}'. Skipping."
+              continue
+            fi
 
             if [[ -f service.yaml ]]; then
               encoded="$(base64 -w 0 service.yaml)"
-              # Build up the environment:encodedFile mapping in JSON.
+              # Append the environment base64 result to our JSON.
               if [[ "${first_entry}" == "true" ]]; then
                 first_entry="false"
               else
@@ -64,6 +68,7 @@ spec:
               echo "No service.yaml found for environment '${env}'."
             fi
 
+            # Remove temporary service.yaml
             rm -f service.yaml
           fi
         done
