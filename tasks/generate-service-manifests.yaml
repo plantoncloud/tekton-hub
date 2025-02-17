@@ -9,23 +9,11 @@ spec:
     - name: source
       description: Directory where application source is located.
 
-  params:
-    - name: environments
-      type: array
-      description: |
-        List of environment names. Example: ["dev","local","prod"]
-    - name: kustomizeDir
-      type: string
-      description: |
-        Path (relative to /workspace/source) where you have 'base' and 'overlays'.
-        Typically `_kustomize` or `./_kustomize`.
-      default: _kustomize
-
   results:
     - name: serviceManifests
       description: |
         A JSON object with environment as the key and the base64-encoded content
-        of service.yaml as the value. For example:
+        of the resulting `service.yaml` as the value. For example:
         {
           "dev": "LS0tIHNlcnZpY2UuLi4=",
           "prod": "LS0tIHNlcnZpY2UuLi4="
@@ -34,40 +22,32 @@ spec:
   steps:
     - name: generate-service-manifests
       image: bitnami/kubectl:latest
-      command:
-        - /bin/bash
-      args:
-        - -c
-        - |
-          #!/usr/bin/env bash
-          set -euxo pipefail
+      script: |
+        #!/usr/bin/env bash
+        set -euxo pipefail
 
-          # 1) Capture kustomizeDir from $1, or default to "_kustomize".
-          kustomize_dir="${1:-_kustomize}"
-          shift || true
+        # 1) Define the path to the overlays directory within the source workspace.
+        overlays_dir="/workspace/source/_kustomize/overlays"
 
-          # 2) The remaining arguments are the environments.
-          environments=("$@")
+        # 2) If the overlays directory doesn't exist, produce an empty JSON and exit.
+        if [[ ! -d "${overlays_dir}" ]]; then
+          echo "Directory '${overlays_dir}' does not exist. Returning empty JSON."
+          echo "{}" > "$(results.serviceManifests.path)"
+          exit 0
+        fi
 
-          # 3) Construct the full path to the kustomize directory in the workspace.
-          full_path="$(workspaces.source.path)/${kustomize_dir}"
+        # 3) Change into the "_kustomize" directory so kustomize commands work relative to overlays/.
+        cd "/workspace/source/_kustomize"
 
-          # 4) If the directory doesn't exist, produce an empty JSON and exit.
-          if [[ ! -d "${full_path}" ]]; then
-            echo "Directory '${full_path}' does not exist. Returning empty JSON."
-            echo "{}" > "$(results.serviceManifests.path)"
-            exit 0
-          fi
+        result_json="{"
+        first_entry="true"
 
-          # 5) Move into the directory and proceed with kustomize for each environment.
-          cd "${full_path}"
+        # 4) Loop over each directory under overlays (each treated as an environment).
+        for env_dir in overlays/*; do
+          if [[ -d "${env_dir}" ]]; then
+            env="$(basename "${env_dir}")"
+            echo "Processing environment: ${env}"
 
-          result_json="{"
-          first_entry="true"
-
-          for env in "${environments[@]}"; do
-            echo "Processing environment: $env"
-            
             if ! kustomize build "overlays/${env}" > service.yaml; then
               echo "Kustomize build failed for environment '${env}'. Skipping."
               continue
@@ -75,6 +55,7 @@ spec:
 
             if [[ -f service.yaml ]]; then
               encoded="$(base64 -w 0 service.yaml)"
+              # Append the environment base64 result to our JSON.
               if [[ "${first_entry}" == "true" ]]; then
                 first_entry="false"
               else
@@ -85,13 +66,13 @@ spec:
               echo "No service.yaml found for environment '${env}'."
             fi
 
+            # Remove temporary service.yaml
             rm -f service.yaml
-          done
+          fi
+        done
 
-          result_json="${result_json}}"
-          echo "Resulting JSON: $result_json"
+        result_json="${result_json}}"
+        echo "Resulting JSON: ${result_json}"
 
-          # 6) Write final JSON to the Task result.
-          echo "$result_json" > "$(results.serviceManifests.path)"
-        - "$(params.kustomizeDir)"
-        - "$(params.environments[*])"
+        # 5) Write final JSON to the Task result.
+        echo "${result_json}" > "$(results.serviceManifests.path)"
