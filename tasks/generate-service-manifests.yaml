@@ -23,9 +23,9 @@ spec:
 
   results:
     - name: serviceManifests
-      description: >
-        A JSON object with environment as the key and the base64-encoded
-        content of service.yaml as the value. e.g.:
+      description: |
+        A JSON object with environment as the key and the base64-encoded content
+        of service.yaml as the value. For example:
         {
           "dev": "LS0tIHNlcnZpY2UuLi4=",
           "prod": "LS0tIHNlcnZpY2UuLi4="
@@ -34,6 +34,7 @@ spec:
   steps:
     - name: generate-service-manifests
       image: bitnami/kubectl:latest
+      # We use 'command' + 'args' instead of script:, to avoid Tekton validation errors.
       command:
         - /bin/bash
       args:
@@ -43,47 +44,57 @@ spec:
           #!/usr/bin/env bash
           set -euxo pipefail
 
-          # The first argument is the kustomizeDir
-          kustomize_dir="$1"
-          shift
+          # The first argument is the kustomizeDir (or fallback to ./_kustomize).
+          kustomize_dir="${1:-./_kustomize}"
+          shift || true  # shift once to move past $1
 
-          # The rest of the arguments are the environments
+          # The remaining arguments are the environments (could be zero or more).
           environments=("$@")
 
+          # Construct the result JSON
           result_json="{"
-          first_entry=true
+          first_entry="true"
+
+          # Change directory to the workspace + the kustomizeDir.
+          # This means your kustomize base/overlays should be found under:
+          #   /workspace/source/<kustomize_dir>/
+          cd "$(workspaces.source.path)/${kustomize_dir}"
 
           for env in "${environments[@]}"; do
             echo "Processing environment: $env"
 
-            cd "${kustomize_dir}"
+            # For each env, run kustomize build from overlays/<env>.
             if ! kustomize build "overlays/${env}" > service.yaml; then
               echo "Kustomize build failed for environment '${env}'. Skipping."
-              cd -
               continue
             fi
 
             if [[ -f service.yaml ]]; then
+              # Base64-encode service.yaml (no line wrapping).
               encoded="$(base64 -w 0 service.yaml)"
+
               if [[ "${first_entry}" == "true" ]]; then
                 first_entry="false"
               else
                 result_json="${result_json},"
               fi
+
               result_json="${result_json}\"${env}\":\"${encoded}\""
             else
               echo "No service.yaml found for environment '${env}'."
             fi
 
             rm -f service.yaml
-            cd -
           done
 
+          # Close the JSON object and print it.
           result_json="${result_json}}"
           echo "Resulting JSON: $result_json"
 
-          # Write to Task result
+          # Write to the Task result file.
           echo "$result_json" > "$(results.serviceManifests.path)"
-        # Now pass the actual Tekton params as separate arguments
+        # Now pass Tekton params as separate arguments:
         - "$(params.kustomizeDir)"
         - "$(params.environments[*])"
+      # Optionally, you can specify a workingDir if needed, but here we `cd` in the script.
+      # workingDir: /workspace/source
