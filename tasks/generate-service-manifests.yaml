@@ -27,7 +27,7 @@ spec:
         set -euxo pipefail
 
         # 1) Define the path to the overlays directory within the source workspace.
-        overlays_dir="/workspace/source/_customize/overlays"
+        overlays_dir="/workspace/source/_kustomize/overlays"
 
         # 2) If the overlays directory doesn't exist, produce an empty JSON and exit.
         if [[ ! -d "${overlays_dir}" ]]; then
@@ -36,9 +36,9 @@ spec:
           exit 0
         fi
 
-        # 3) Change into the "_customize" directory so the `kubectl kustomize` command
+        # 3) Change into the "_kustomize" directory so the `kubectl kustomize` command
         #    will be run relative to `overlays/`.
-        cd "/workspace/source/_customize"
+        cd "/workspace/source/_kustomize"
 
         result_json="{"
         first_entry="true"
