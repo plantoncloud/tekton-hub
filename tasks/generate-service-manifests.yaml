@@ -20,8 +20,8 @@ spec:
   results:
     - name: serviceManifests
       description: >
-        A JSON object with environment as the key and the base64-encoded content
-        of service.yaml as the value. e.g.:
+        A JSON object with environment as the key and the base64-encoded
+        content of service.yaml as the value. e.g.:
         {
           "dev": "LS0tIHNlcnZpY2UuLi4=",
           "prod": "LS0tIHNlcnZpY2UuLi4="
@@ -30,26 +30,36 @@ spec:
   steps:
     - name: generate-service-manifests
       image: bitnami/kubectl:latest
+      # We'll supply the script inline but rely on `command` and `args` to
+      # pass params correctly. Tekton will place this script into a file
+      # and run it for us.
       script: |
         #!/usr/bin/env bash
         set -euxo pipefail
 
-        environments=($(printf "%s\n" "$(params.environments)"))
+        # The first argument is the kustomizeDir
+        kustomize_dir="$1"
+        shift
+
+        # The remaining arguments are the environment names
+        environments=("$@")
+
         result_json="{"
         first_entry=true
 
-        for env in "${environments}"; do
+        for env in "${environments[@]}"; do
           echo "Processing environment: $env"
-          cd "$(params.kustomizeDir)"
+          cd "$kustomize_dir"
           kustomize build "overlays/${env}" > service.yaml || {
             echo "Kustomize build failed for environment $env, skipping."
             cd -
             continue
           }
           if [[ -f "service.yaml" ]]; then
-            encoded=$(base64 -w 0 service.yaml)
-            if [[ "$first_entry" == true ]]; then
-              first_entry=false
+            # Encode the generated YAML file
+            encoded="$(base64 -w 0 service.yaml)"
+            if [[ "$first_entry" == "true" ]]; then
+              first_entry="false"
             else
               result_json="${result_json},"
             fi
@@ -63,4 +73,17 @@ spec:
 
         result_json="${result_json}}"
         echo "Resulting JSON: $result_json"
+
+        # Write JSON to the Task result file
         echo "$result_json" > "$(results.serviceManifests.path)"
+      command:
+        - /bin/bash
+      args:
+        # -c indicates we want to run the script Tekton places in /tekton/scripts/script-0.sh
+        # We then pass the param values as subsequent arguments
+        - -c
+        - |
+          # In many Tekton images, /tekton/scripts/script-0.sh is the generated script file.
+          /tekton/scripts/script-0.sh "$@" 
+        - "$(params.kustomizeDir)"
+        - "$(params.environments[*])"
