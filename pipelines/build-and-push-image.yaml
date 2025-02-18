@@ -71,7 +71,8 @@ spec:
             value: "0.6"
       params:
         - name: BUILDER_IMAGE
-          value: "paketobuildpacks/builder:base"
+          #https://cloud.google.com/docs/buildpacks/builders
+          value: "gcr.io/buildpacks/builder:google-22"
         - name: PROCESS_TYPE
           value: ""
         - name: PATH
