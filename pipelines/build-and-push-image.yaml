@@ -90,9 +90,9 @@ spec:
           workspace: source
 
     #################################################################
-    # 3) GENERATE-SERVICE-MANIFESTS (Using CEL to skip if empty)
+    # 3) KUSTOMIZE BUILD
     #################################################################
-    - name: generate-service-manifests
+    - name: kustomize-build
       runAfter:
         - git-checkout
       taskRef:
@@ -103,7 +103,7 @@ spec:
           - name: revision
             value: "main"
           - name: pathInRepo
-            value: "tasks/generate-service-manifests.yaml"
+            value: "tasks/kustomize-build.yaml"
       workspaces:
         - name: source
           workspace: source

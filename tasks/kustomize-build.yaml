@@ -1,9 +1,7 @@
 apiVersion: tekton.dev/v1
 kind: Task
 metadata:
-  name: generate-service-manifests
-  annotations:
-    adr.example.com/reference: "KustomizeBasedTektonTask"
+  name: kustomize-build
 spec:
   params:
     - name: configMapName
@@ -23,7 +21,7 @@ spec:
         service.yaml content.
 
   steps:
-    - name: generate-service-manifests
+    - name: kustomize-build
       image: bitnami/kubectl:latest
       script: |
         #!/usr/bin/env bash
