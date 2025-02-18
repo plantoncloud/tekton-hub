@@ -35,9 +35,6 @@ spec:
             --dry-run=client \
             -o yaml \
           | kubectl apply -f -
-
-          # Write the configMapName as the Task result.
-          echo -n "$(params.configMapName)" > "$(results.configMapName.path)"
           exit 0
         fi
 
@@ -80,6 +77,3 @@ spec:
 
         # 6) Run kubectl with the collected arguments to generate YAML, then pipe to kubectl apply.
         "${KUBECTL_BIN:-kubectl}" "${KCM_ARGS[@]}" | kubectl apply -f -
-
-        # 7) Write out the ConfigMap name as the Task result.
-        echo -n "$(params.configMapName)" > "$(results.configMapName.path)"
