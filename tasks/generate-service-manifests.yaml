@@ -1,23 +1,26 @@
-apiVersion: tekton.dev/v1beta1
+apiVersion: tekton.dev/v1
 kind: Task
 metadata:
   name: generate-service-manifests
   annotations:
     adr.example.com/reference: "KustomizeBasedTektonTask"
 spec:
+  params:
+    - name: configMapName
+      type: string
+      description: The name of the ConfigMap to be created or updated.
+    - name: configMapNamespace
+      type: string
+      description: The namespace in which to create/update the ConfigMap.
   workspaces:
     - name: source
       description: Directory where application source is located.
 
   results:
-    - name: serviceManifests
-      description: |
-        A JSON object with environment as the key and the base64-encoded content
-        of the resulting `service.yaml` as the value. For example:
-        {
-          "dev": "LS0tIHNlcnZpY2UuLi4=",
-          "prod": "LS0tIHNlcnZpY2UuLi4="
-        }
+    - name: configMapName
+      description: >
+        The name of the ConfigMap storing the environment => base64-encoded 
+        service.yaml content.
 
   steps:
     - name: generate-service-manifests
@@ -29,52 +32,66 @@ spec:
         # 1) Define the path to the overlays directory within the source workspace.
         overlays_dir="/workspace/source/_kustomize/overlays"
 
-        # 2) If the overlays directory doesn't exist, produce an empty JSON and exit.
+        # 2) If the overlays directory doesn't exist, create an empty ConfigMap (no data).
         if [[ ! -d "${overlays_dir}" ]]; then
-          echo "Directory '${overlays_dir}' does not exist. Returning empty JSON."
-          echo "{}" > "$(results.serviceManifests.path)"
+          echo "Directory '${overlays_dir}' does not exist. Creating empty ConfigMap."
+
+          cat <<EOF > configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: $(params.configMapName)
+  namespace: $(params.configMapNamespace)
+data: {}
+EOF
+
+          kubectl apply -f configmap.yaml
+
+          # Write the configMapName as the Task result
+          echo -n "$(params.configMapName)" > "$(results.configMapName.path)"
           exit 0
         fi
 
-        # 3) Change into the "_kustomize" directory so the `kubectl kustomize` command
-        #    will be run relative to `overlays/`.
+        # 3) Change into the "_kustomize" directory so `kubectl kustomize` is relative to overlays/.
         cd "/workspace/source/_kustomize"
 
-        result_json="{"
-        first_entry="true"
+        # 4) Begin constructing the ConfigMap YAML
+        cat <<EOF > configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: $(params.configMapName)
+  namespace: $(params.configMapNamespace)
+data:
+EOF
 
-        # 4) Loop over each directory under overlays (each treated as an environment).
+        # 5) Loop over each overlay directory (each environment).
         for env_dir in overlays/*; do
           if [[ -d "${env_dir}" ]]; then
             env="$(basename "${env_dir}")"
             echo "Processing environment: ${env}"
 
-            # Use `kubectl kustomize` instead of `kustomize build`
+            # Run kubectl kustomize for this overlay
             if ! kubectl kustomize "overlays/${env}" > service.yaml; then
               echo "Kustomize build failed for environment '${env}'. Skipping."
               continue
             fi
 
+            # If service.yaml is generated, base64-encode and add to ConfigMap data
             if [[ -f service.yaml ]]; then
               encoded="$(base64 -w 0 service.yaml)"
-              # Append the environment base64 result to our JSON.
-              if [[ "${first_entry}" == "true" ]]; then
-                first_entry="false"
-              else
-                result_json="${result_json},"
-              fi
-              result_json="${result_json}\"${env}\":\"${encoded}\""
+              echo "  ${env}: \"${encoded}\"" >> configmap.yaml
+
+              # Remove temporary service.yaml
+              rm -f service.yaml
             else
               echo "No service.yaml found for environment '${env}'."
             fi
-
-            # Remove temporary service.yaml
-            rm -f service.yaml
           fi
         done
 
-        result_json="${result_json}}"
-        echo "Resulting JSON: ${result_json}"
+        # 6) Apply (create/update) the generated ConfigMap
+        kubectl apply -f configmap.yaml
 
-        # 5) Write final JSON to the Task result.
-        echo "${result_json}" > "$(results.serviceManifests.path)"
+        # 7) Write out the ConfigMap name as the Task result
+        echo -n "$(params.configMapName)" > "$(results.configMapName.path)"

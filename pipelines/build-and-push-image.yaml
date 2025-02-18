@@ -21,6 +21,10 @@ spec:
       type: string
       description: "The final image name to be built/pushed"
 
+    - name: pipeline-id
+      type: string
+      description: "id of the pipeline on planton-cloud"
+
   workspaces:
     - name: source
       description: "Workspace that stores source code & build artifacts"
@@ -103,3 +107,8 @@ spec:
       workspaces:
         - name: source
           workspace: source
+      params:
+        - name: configMapName
+          value: "$(params.pipelineId)"
+        - name: configMapNamespace
+          value: "planton-cloud-pipelines"
