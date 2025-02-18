@@ -16,12 +16,6 @@ spec:
     - name: source
       description: Directory where application source is located.
 
-  results:
-    - name: configMapName
-      description: >
-        The name of the ConfigMap storing the environment => base64-encoded 
-        service.yaml content.
-
   steps:
     - name: kustomize-build
       image: bitnami/kubectl:latest
@@ -87,5 +81,3 @@ spec:
         # 6) Run kubectl with the collected arguments to generate YAML, then pipe to kubectl apply.
         "${KUBECTL_BIN:-kubectl}" "${KCM_ARGS[@]}" | kubectl apply -f -
 
-        # 7) Write out the ConfigMap name as the Task result.
-        echo -n "$(params.configMapName)" > "$(results.configMapName.path)"
