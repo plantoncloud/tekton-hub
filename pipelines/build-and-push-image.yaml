@@ -109,6 +109,6 @@ spec:
           workspace: source
       params:
         - name: configMapName
-          value: "$(params.pipelineId)"
+          value: "$(params.pipeline-id)"
         - name: configMapNamespace
           value: "planton-cloud-pipelines"
