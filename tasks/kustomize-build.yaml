@@ -1,4 +1,4 @@
-apiVersion: tekton.dev/v1beta1
+apiVersion: tekton.dev/v1
 kind: Task
 metadata:
   name: kustomize-build
@@ -34,18 +34,13 @@ spec:
 
         # 2) If the overlays directory doesn't exist, create an empty ConfigMap (no data).
         if [[ ! -d "${overlays_dir}" ]]; then
-          echo "Directory '${overlays_dir}' does not exist. Creating empty ConfigMap."
+          echo "Directory '${overlays_dir}' does not exist. Creating empty ConfigMap..."
 
-          cat <<EOF > configmap.yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: $(params.configMapName)
-  namespace: $(params.configMapNamespace)
-data: {}
-EOF
-
-          kubectl apply -f configmap.yaml
+          kubectl create configmap "$(params.configMapName)" \
+            --namespace "$(params.configMapNamespace)" \
+            --dry-run=client \
+            -o yaml \
+          | kubectl apply -f -
 
           # Write the configMapName as the Task result.
           echo -n "$(params.configMapName)" > "$(results.configMapName.path)"
@@ -55,15 +50,12 @@ EOF
         # 3) Change into the "_kustomize" directory so `kubectl kustomize` is relative to `overlays/`.
         cd "/workspace/source/_kustomize"
 
-        # 4) Begin constructing the ConfigMap YAML.
-        cat <<EOF > configmap.yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: $(params.configMapName)
-  namespace: $(params.configMapNamespace)
-data:
-EOF
+        # 4) Collect all --from-literal arguments in an array, then pass them to kubectl.
+        #    Start with the basic `create configmap` command in dry-run mode.
+        KCM_ARGS=( "create" "configmap" "$(params.configMapName)"
+                   "--namespace" "$(params.configMapNamespace)"
+                   "--dry-run=client"
+                   "-o" "yaml" )
 
         # 5) Loop over each overlay directory (each environment).
         for env_dir in overlays/*; do
@@ -77,14 +69,14 @@ EOF
               continue
             fi
 
-            # If service.yaml is generated, base64-encode and add to ConfigMap data.
+            # If service.yaml is generated, base64-encode and add as a literal entry.
             if [[ -f service.yaml ]]; then
-              # -w 0 ensures base64 output is a single line
               encoded="$(base64 -w 0 service.yaml)"
-              # Quote the env name and the value to avoid YAML parse issues
-              echo "  \"${env}\": \"${encoded}\"" >> configmap.yaml
+              # `--from-literal=env=base64data` will place it under data.env in the resulting ConfigMap.
+              # If env contains special chars, it might need quoting, but for typical env names it’s fine.
+              KCM_ARGS+=( "--from-literal=${env}=${encoded}" )
 
-              # Remove temporary service.yaml
+              # Clean up
               rm -f service.yaml
             else
               echo "No service.yaml found for environment '${env}'."
@@ -92,8 +84,8 @@ EOF
           fi
         done
 
-        # 6) Apply (create/update) the generated ConfigMap.
-        kubectl apply -f configmap.yaml
+        # 6) Run kubectl with the collected arguments to generate YAML, then pipe to kubectl apply.
+        "${KUBECTL_BIN:-kubectl}" "${KCM_ARGS[@]}" | kubectl apply -f -
 
         # 7) Write out the ConfigMap name as the Task result.
         echo -n "$(params.configMapName)" > "$(results.configMapName.path)"
