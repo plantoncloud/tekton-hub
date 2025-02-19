@@ -56,8 +56,8 @@ spec:
 
             # Run kubectl kustomize for this overlay.
             if ! kubectl kustomize "overlays/${env}" > service.yaml; then
-              echo "Kustomize build failed for environment '${env}'. Skipping."
-              continue
+              echo "Kustomize build failed for environment '${env}'. Exiting."
+              exit 1
             fi
 
             # If service.yaml is generated, base64-encode and add as a literal entry.
