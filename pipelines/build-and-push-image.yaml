@@ -35,35 +35,35 @@ spec:
     #################################################################
     # 1) GIT-CHECKOUT
     #################################################################
-    - name: git-checkout
-      taskRef:
-        resolver: hub
-        params:
-          - name: type
-            value: tekton
-          - name: kind
-            value: task
-          - name: name
-            value: git-clone
-          - name: version
-            value: "0.9"
-      params:
-        - name: url
-          value: "$(params.git-url)"
-        - name: revision
-          value: "$(params.git-revision)"
-        - name: deleteExisting
-          value: "true"
-      workspaces:
-        - name: output
-          workspace: source
+    # - name: git-checkout
+    #   taskRef:
+    #     resolver: hub
+    #     params:
+    #       - name: type
+    #         value: tekton
+    #       - name: kind
+    #         value: task
+    #       - name: name
+    #         value: git-clone
+    #       - name: version
+    #         value: "0.9"
+    #   params:
+    #     - name: url
+    #       value: "$(params.git-url)"
+    #     - name: revision
+    #       value: "$(params.git-revision)"
+    #     - name: deleteExisting
+    #       value: "true"
+    #   workspaces:
+    #     - name: output
+    #       workspace: source
 
     #################################################################
     # 2) BUILD-IMAGE (with Buildpacks) - Optional Example
     #################################################################
     - name: build-image
-      runAfter:
-        - git-checkout
+      # runAfter:
+      #   - git-checkout
       taskRef:
         resolver: hub
         params:
@@ -97,8 +97,8 @@ spec:
     # 3) KUSTOMIZE BUILD
     #################################################################
     - name: kustomize-build
-      runAfter:
-        - git-checkout
+      # runAfter:
+      #   - git-checkout
       taskRef:
         resolver: git
         params:
