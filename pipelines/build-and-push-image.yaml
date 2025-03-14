@@ -4,7 +4,7 @@
 apiVersion: tekton.dev/v1
 kind: Pipeline
 metadata:
-  name: build-and-push-image-cel
+  name: build-and-push-image
   namespace: planton-cloud-pipelines
 spec:
   params:
@@ -28,8 +28,6 @@ spec:
   workspaces:
     - name: source
       description: "Workspace that stores source code & build artifacts"
-    - name: package-credentials
-      description: "Workspace that stores package-credentials required for build"
 
   tasks:
     #################################################################
@@ -90,8 +88,6 @@ spec:
       workspaces:
         - name: source
           workspace: source
-        - name: package-credentials
-          workspace: package-credentials
 
     #################################################################
     # 3) KUSTOMIZE BUILD
