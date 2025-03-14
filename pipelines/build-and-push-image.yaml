@@ -118,8 +118,6 @@ spec:
       workspaces:
         - name: source
           workspace: source
-        - name: package-credentials
-          workspace: package-credentials
 
     #################################################################
     # 4) KUSTOMIZE BUILD
