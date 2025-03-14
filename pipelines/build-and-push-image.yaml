@@ -96,23 +96,23 @@ spec:
     #################################################################
     # 3) KUSTOMIZE BUILD
     #################################################################
-    - name: kustomize-build
-      # runAfter:
-      #   - git-checkout
-      taskRef:
-        resolver: git
-        params:
-          - name: url
-            value: "https://github.com/plantoncloud/tekton-hub.git"
-          - name: revision
-            value: "main"
-          - name: pathInRepo
-            value: "tasks/kustomize-build.yaml"
-      workspaces:
-        - name: source
-          workspace: source
-      params:
-        - name: configMapName
-          value: "$(params.kustomize-manifests-config-map-name)"
-        - name: configMapNamespace
-          value: "planton-cloud-pipelines"
+    # - name: kustomize-build
+    #   # runAfter:
+    #   #   - git-checkout
+    #   taskRef:
+    #     resolver: git
+    #     params:
+    #       - name: url
+    #         value: "https://github.com/plantoncloud/tekton-hub.git"
+    #       - name: revision
+    #         value: "main"
+    #       - name: pathInRepo
+    #         value: "tasks/kustomize-build.yaml"
+    #   workspaces:
+    #     - name: source
+    #       workspace: source
+    #   params:
+    #     - name: configMapName
+    #       value: "$(params.kustomize-manifests-config-map-name)"
+    #     - name: configMapNamespace
+    #       value: "planton-cloud-pipelines"
