@@ -17,6 +17,11 @@ spec:
       description: "Git revision to checkout"
       default: "main"
 
+    - name: setup-package-credentials
+      type: string
+      description: "Set to 'true' to run setup-package-credentials task"
+      default: "false"
+
     - name: image-name
       type: string
       description: "The final image name to be built/pushed"
@@ -28,6 +33,8 @@ spec:
   workspaces:
     - name: source
       description: "Workspace that stores source code & build artifacts"
+    - name: package-credentials
+      description: "Workspace that stores package-credentials required for build"
 
   tasks:
     #################################################################
@@ -55,13 +62,36 @@ spec:
       workspaces:
         - name: output
           workspace: source
+    #################################################################
+    # 2) SETUP PACKAGE-CREDENTIALS
+    #################################################################
+    - name: setup-package-credentials
+      when:
+        - input: "$(params.setup-package-credentials)"
+          operator: in
+          values: ["true"]
+      runAfter:
+        - git-checkout
+      taskSpec:
+        workspaces:
+          - name: source
+          - name: package-credentials
+        steps:
+          - name: copy
+            image: alpine:3
+            script: |
+              mkdir -p /workspace/source/.package-credentials
+              cp /workspace/package-credentials/* /workspace/source/.package-credentials/ || true
+      workspaces:
+        - name: source
+        - name: package-credentials
 
     #################################################################
-    # 2) BUILD-IMAGE (with Buildpacks) - Optional Example
+    # 3) BUILD-IMAGE (with Buildpacks) - Optional Example
     #################################################################
     - name: build-image
       runAfter:
-        - git-checkout
+        - setup-package-credentials
       taskRef:
         resolver: hub
         params:
@@ -88,9 +118,11 @@ spec:
       workspaces:
         - name: source
           workspace: source
+        - name: package-credentials
+          workspace: package-credentials
 
     #################################################################
-    # 3) KUSTOMIZE BUILD
+    # 4) KUSTOMIZE BUILD
     #################################################################
     - name: kustomize-build
       runAfter:
