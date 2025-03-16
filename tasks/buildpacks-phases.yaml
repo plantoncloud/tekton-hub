@@ -164,6 +164,9 @@ spec:
         - "-layers=/layers"
         - "-group=/layers/group.toml"
         - "-plan=/layers/plan.toml"
+      env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: "/workspace/source/.package-credentials/google-service-account.json"
       volumeMounts:
         - name: layers-dir
           mountPath: /layers
