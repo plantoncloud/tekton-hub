@@ -77,11 +77,11 @@ spec:
       runAfter:
         - setup-package-credentials
       taskRef:
-        name: buildpacks-phases
+        name: buildpacks-one-step
       params:
         - name: BUILDER_IMAGE
           value: "paketobuildpacks/builder-jammy-base"
-        - name: IMAGE
+        - name: APP_IMAGE
           value: "$(params.image-name)"
         - name: SOURCE_SUBPATH
           value: ""
@@ -89,6 +89,9 @@ spec:
           value: "web"
         - name: BP_JVM_VERSION
           value: "21"
+        - name: ENV_VARS
+          value:
+            - "GOOGLE_APPLICATION_CREDENTIALS=/workspace/source/.package-credentials/google-service-account.json"
       workspaces:
         - name: source
           workspace: source
