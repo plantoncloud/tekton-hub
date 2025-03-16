@@ -1,7 +1,7 @@
 apiVersion: tekton.dev/v1
 kind: Pipeline
 metadata:
-  name: build-and-push-image-local
+  name: build-and-push-image
   namespace: planton-cloud-pipelines
 spec:
   params:
@@ -77,7 +77,14 @@ spec:
       runAfter:
         - setup-package-credentials
       taskRef:
-        name: buildpacks-one-step
+        resolver: git
+        params:
+          - name: url
+            value: "https://github.com/plantoncloud/tekton-hub.git"
+          - name: revision
+            value: "main"
+          - name: pathInRepo
+            value: "tasks/kustomize-build.yaml"
       params:
         - name: BUILDER_IMAGE
           value: "paketobuildpacks/builder-jammy-base"
@@ -86,7 +93,7 @@ spec:
         - name: SOURCE_SUBPATH
           value: ""
         - name: PROCESS_TYPE
-          value: "web"
+          value: ""
         - name: ENV_VARS
           value:
             - "GOOGLE_APPLICATION_CREDENTIALS=/workspace/source/.package-credentials/google-service-account.json"
@@ -105,7 +112,7 @@ spec:
           - name: revision
             value: "main"
           - name: pathInRepo
-            value: "tasks/kustomize-build.yaml"
+            value: "tasks/buildpacks.yaml"
       params:
         - name: configMapName
           value: "$(params.kustomize-manifests-config-map-name)"

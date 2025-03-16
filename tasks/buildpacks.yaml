@@ -2,7 +2,7 @@
 apiVersion: tekton.dev/v1
 kind: Task
 metadata:
-  name: buildpacks-one-step
+  name: buildpacks
   namespace: planton-cloud-pipelines
   labels:
     app.kubernetes.io/version: "0.6"
