@@ -1,0 +1,146 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: buildpacks-single-step
+  namespace: planton-cloud-pipelines
+spec:
+  description: >
+    A single-step version of Buildpacks Phases, merging prepare/detect/analyze/
+    restore/build/export into one container invocation with a script.
+
+  params:
+    - name: BUILDER_IMAGE
+      description: The image on which builds will run (must include lifecycle and compatible buildpacks).
+    - name: IMAGE
+      description: The image URL where the final build will be pushed.
+    - name: CACHE
+      description: The name of the persistent app cache volume.
+      default: empty-dir
+    - name: PLATFORM_DIR
+      description: The name of the platform directory.
+      default: empty-dir
+    - name: USER_ID
+      description: The user ID of the builder image user.
+      default: "1000"
+    - name: GROUP_ID
+      description: The group ID of the builder image user.
+      default: "1000"
+    - name: PROCESS_TYPE
+      description: The default process type to set on the image.
+      default: "web"
+    - name: SOURCE_SUBPATH
+      description: A subpath within the `source` input where the source to build is located.
+      default: ""
+    - name: USER_HOME
+      description: Absolute path to the user's home directory.
+      default: /tekton/home
+    - name: BP_JVM_VERSION
+      description: Java version to install (e.g., 8, 11, 17, 21).
+      default: "17"
+
+  workspaces:
+    - name: source
+      description: Source code for the application
+
+  # Single-step approach: all environment variables go here, including BP_JVM_VERSION
+  stepTemplate:
+    env:
+      - name: CNB_PLATFORM_API
+        value: "0.7"
+      - name: HOME
+        value: "$(params.USER_HOME)"
+      - name: BP_JVM_VERSION
+        value: "$(params.BP_JVM_VERSION)"
+
+  steps:
+    - name: build-all
+      image: "$(params.BUILDER_IMAGE)"
+      securityContext:
+        privileged: true
+      volumeMounts:
+        - name: layers-dir
+          mountPath: /layers
+        - name: $(params.CACHE)
+          mountPath: /cache
+        - name: $(params.PLATFORM_DIR)
+          mountPath: /platform
+        - name: empty-dir
+          mountPath: /tekton/home
+      script: |
+        #!/bin/sh
+        set -e
+
+        echo "1) Preparing directories..."
+        chown -R "$(params.USER_ID):$(params.GROUP_ID)" "/tekton/home"
+        chown -R "$(params.USER_ID):$(params.GROUP_ID)" "/layers"
+        chown -R "$(params.USER_ID):$(params.GROUP_ID)" "/cache"
+        chown -R "$(params.USER_ID):$(params.GROUP_ID)" "$(workspaces.source.path)"
+
+        echo "2) Copying stack.toml..."
+        # If builder has /cnb/stack.toml, copy it into /layers
+        if [ -f "/cnb/stack.toml" ]; then
+          cp /cnb/stack.toml /layers/stack.toml
+        else
+          echo "WARNING: No /cnb/stack.toml found in the builder image."
+        fi
+
+        echo "3) Detecting..."
+        /cnb/lifecycle/detector \
+          -app="$(workspaces.source.path)/$(params.SOURCE_SUBPATH)" \
+          -group=/layers/group.toml \
+          -plan=/layers/plan.toml
+
+        echo "4) Analyzing..."
+        # Using the lifecycle from the builder image at /cnb/lifecycle/analyzer
+        # If your builder image doesn't have it, you can reference a separate image or path
+        # Also add -stack if needed for new lifecycles
+        if [ -f "/cnb/lifecycle/analyzer" ]; then
+          /cnb/lifecycle/analyzer \
+            -layers=/layers \
+            -uid="$(params.USER_ID)" \
+            -gid="$(params.GROUP_ID)" \
+            "$(params.IMAGE)"
+        else
+          echo "No local analyzer found; skipping analyze step or referencing an older lifecycle."
+        fi
+
+        echo "5) Restoring..."
+        if [ -f "/cnb/lifecycle/restorer" ]; then
+          /cnb/lifecycle/restorer \
+            -layers=/layers \
+            -uid="$(params.USER_ID)" \
+            -gid="$(params.GROUP_ID)"
+        else
+          echo "No local restorer found; skipping restore step or referencing an older lifecycle."
+        fi
+
+        echo "6) Building..."
+        /cnb/lifecycle/builder \
+          -app="$(workspaces.source.path)/$(params.SOURCE_SUBPATH)" \
+          -layers=/layers \
+          -group=/layers/group.toml \
+          -plan=/layers/plan.toml
+
+        echo "7) Exporting..."
+        # If you're using a new lifecycle version, you might need -stack=/layers/stack.toml
+        # or -run-image=some-run-image. Adjust as needed.
+        if [ -f "/cnb/lifecycle/exporter" ]; then
+          /cnb/lifecycle/exporter \
+            -app="$(workspaces.source.path)/$(params.SOURCE_SUBPATH)" \
+            -layers=/layers \
+            -process-type="$(params.PROCESS_TYPE)" \
+            -uid="$(params.USER_ID)" \
+            -gid="$(params.GROUP_ID)" \
+            -stack=/layers/stack.toml \
+            "$(params.IMAGE)"
+        else
+          echo "No local exporter found; skipping export step or referencing an older lifecycle."
+        fi
+
+        echo "Done - single step buildpacks phases completed."
+
+  volumes:
+    - name: empty-dir
+      emptyDir: {}
+    - name: layers-dir
+      emptyDir: {}
