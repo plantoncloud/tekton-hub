@@ -84,7 +84,7 @@ spec:
           - name: revision
             value: "main"
           - name: pathInRepo
-            value: "tasks/kustomize-build.yaml"
+            value: "tasks/buildpacks.yaml"
       params:
         - name: BUILDER_IMAGE
           value: "paketobuildpacks/builder-jammy-base"
@@ -112,7 +112,7 @@ spec:
           - name: revision
             value: "main"
           - name: pathInRepo
-            value: "tasks/buildpacks.yaml"
+            value: "tasks/kustomize-build.yaml"
       params:
         - name: configMapName
           value: "$(params.kustomize-manifests-config-map-name)"
