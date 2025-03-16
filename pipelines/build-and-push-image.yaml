@@ -87,8 +87,6 @@ spec:
           value: ""
         - name: PROCESS_TYPE
           value: "web"
-        - name: BP_JVM_VERSION
-          value: "21"
         - name: ENV_VARS
           value:
             - "GOOGLE_APPLICATION_CREDENTIALS=/workspace/source/.package-credentials/google-service-account.json"
