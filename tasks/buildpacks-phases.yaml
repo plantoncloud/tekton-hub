@@ -1,0 +1,197 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: buildpacks-phases
+  namespace: planton-cloud-pipelines
+spec:
+  description: >
+    The Buildpacks-Phases task builds source into a container image
+    using Cloud Native Buildpacks. Compatible with Lifecycle v0.20.x.
+  params:
+    - name: BUILDER_IMAGE
+      description: The image on which builds will run (must include lifecycle and compatible buildpacks).
+    - name: IMAGE
+      description: The image URL where the final build will be pushed.
+    - name: CACHE
+      description: The name of a persistent app cache volume (optional).
+      default: empty-dir
+    - name: PLATFORM_DIR
+      description: The name of the platform directory.
+      default: empty-dir
+    - name: USER_ID
+      description: The user ID of the builder image user.
+      default: "1000"
+    - name: GROUP_ID
+      description: The group ID of the builder image user.
+      default: "1000"
+    - name: PROCESS_TYPE
+      description: The default process type to set on the final image.
+      default: "web"
+    - name: SOURCE_SUBPATH
+      description: A subpath within the `source` input where the source to build is located.
+      default: ""
+    - name: USER_HOME
+      description: Absolute path to the user's home directory.
+      default: /tekton/home
+    - name: BP_JVM_VERSION
+      description: Java version to install (e.g., 8, 11, 17, 21).
+      default: "17"
+  workspaces:
+    - name: source
+      description: Source code for the application
+
+  stepTemplate:
+    env:
+      - name: CNB_PLATFORM_API
+        value: "0.7"
+      - name: HOME
+        value: "$(params.USER_HOME)"
+      - name: BP_JVM_VERSION
+        value: "$(params.BP_JVM_VERSION)"
+
+  steps:
+    - name: prepare
+      image: docker.io/library/alpine:3.12
+      command: ["/bin/sh"]
+      args:
+        - "-c"
+        - >
+          chown -R "$(params.USER_ID):$(params.GROUP_ID)" "/tekton/home" &&
+          chown -R "$(params.USER_ID):$(params.GROUP_ID)" "/layers" &&
+          chown -R "$(params.USER_ID):$(params.GROUP_ID)" "/cache" &&
+          chown -R "$(params.USER_ID):$(params.GROUP_ID)" "$(workspaces.source.path)"
+      volumeMounts:
+        - name: layers-dir
+          mountPath: /layers
+        - name: $(params.CACHE)
+          mountPath: /cache
+      securityContext:
+        privileged: true
+
+    - name: copy-stack-toml
+      image: "$(params.BUILDER_IMAGE)"
+      command: ["/bin/sh"]
+      args:
+        - "-c"
+        - >
+          cp /cnb/stack.toml /layers/
+      volumeMounts:
+        - name: layers-dir
+          mountPath: /layers
+
+    - name: detect
+      image: "$(params.BUILDER_IMAGE)"
+      command: ["/cnb/lifecycle/detector"]
+      args:
+        - "-app=$(workspaces.source.path)/$(params.SOURCE_SUBPATH)"
+        - "-group=/layers/group.toml"
+        - "-plan=/layers/plan.toml"
+      volumeMounts:
+        - name: layers-dir
+          mountPath: /layers
+        - name: $(params.PLATFORM_DIR)
+          mountPath: /platform
+        - name: empty-dir
+          mountPath: /tekton/home
+
+    - name: analyze
+      image: docker.io/buildpacksio/lifecycle:0.20.6
+      command: ["/cnb/lifecycle/analyzer"]
+      args:
+        - "-layers=/layers"
+        - "-stack=/layers/stack.toml"
+        - "-uid=$(params.USER_ID)"
+        - "-gid=$(params.GROUP_ID)"
+        - "$(params.IMAGE)"
+      volumeMounts:
+        - name: layers-dir
+          mountPath: /layers
+
+    - name: restore
+      image: docker.io/buildpacksio/lifecycle:0.20.6
+      command: ["/cnb/lifecycle/restorer"]
+      args:
+        - "-layers=/layers"
+        - "-uid=$(params.USER_ID)"
+        - "-gid=$(params.GROUP_ID)"
+      volumeMounts:
+        - name: layers-dir
+          mountPath: /layers
+
+    # NEW STEP: simply dump environment variables
+    - name: dump-env
+      image: docker.io/library/alpine:3.12
+      script: |
+        echo "Dumping environment variables..."
+        env
+        echo "checking gac"
+        cat $GOOGLE_APPLICATION_CREDENTIALS
+
+    # 2) (Optional) Just a standard Gradle step to verify your credentials
+    - name: test-gradle
+      # The official Gradle image, pinned to a version with JDK 21
+      image: gradle:8.10.2-jdk21
+      script: |
+        #!/usr/bin/env bash
+        echo "current dir: $(pwd)"
+        echo "Testing Gradle build with official Gradle Docker image..."
+        echo "List contents of source workspace:"
+        ls -l /workspace/source/
+
+        echo "Check credentials location: $GOOGLE_APPLICATION_CREDENTIALS"
+        ls -l /workspace/source/.package-credentials || true
+
+        echo "Attempting Gradle build..."
+        # If your 'gradlew' is executable, use ./gradlew
+        # Otherwise you can just 'gradle build' if the code doesn't rely on local gradlew scripts.
+        echo "changing to /workspace/source"
+        cd /workspace/source
+        ./gradlew --no-daemon assemble
+      env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: "/workspace/source/.package-credentials/google-service-account.json"
+      volumeMounts:
+        - name: layers-dir
+          mountPath: /layers
+        - name: $(params.CACHE)
+          mountPath: /cache
+
+    - name: build
+      image: "$(params.BUILDER_IMAGE)"
+      command: ["/cnb/lifecycle/builder"]
+      args:
+        - "-app=$(workspaces.source.path)/$(params.SOURCE_SUBPATH)"
+        - "-layers=/layers"
+        - "-group=/layers/group.toml"
+        - "-plan=/layers/plan.toml"
+      env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: "/workspace/source/.package-credentials/google-service-account.json"
+      volumeMounts:
+        - name: layers-dir
+          mountPath: /layers
+        - name: $(params.PLATFORM_DIR)
+          mountPath: /platform
+        - name: empty-dir
+          mountPath: /tekton/home
+
+    - name: export
+      image: docker.io/buildpacksio/lifecycle:0.20.6
+      command: ["/cnb/lifecycle/exporter"]
+      args:
+        - "-app=$(workspaces.source.path)/$(params.SOURCE_SUBPATH)"
+        - "-layers=/layers"
+        - "-stack=/layers/stack.toml"
+        - "-process-type=$(params.PROCESS_TYPE)"
+        - "-uid=$(params.USER_ID)"
+        - "-gid=$(params.GROUP_ID)"
+        - "$(params.IMAGE)"
+      volumeMounts:
+        - name: layers-dir
+          mountPath: /layers
+
+  volumes:
+    - name: empty-dir
+      emptyDir: {}
+    - name: layers-dir
+      emptyDir: {}
