@@ -57,7 +57,7 @@ spec:
   stepTemplate:
     env:
       - name: CNB_PLATFORM_API
-        value: "0.3"
+        value: "0.14"
       - name: HOME
         value: $(params.USER_HOME)
 
@@ -110,7 +110,7 @@ spec:
           mountPath: /tekton/home
 
     - name: analyze
-      image: docker.io/buildpacksio/lifecycle:0.8.1@sha256:261b7f85b4af986b5802eabc14d581d1830b1d9e38379f99740f5bcdd8a75b86
+      image: docker.io/buildpacksio/lifecycle:0.20.6
       imagePullPolicy: Always
       command: ["/cnb/lifecycle/analyzer"]
       args:
@@ -127,7 +127,7 @@ spec:
           mountPath: /layers
 
     - name: restore
-      image: docker.io/buildpacksio/lifecycle:0.8.1@sha256:261b7f85b4af986b5802eabc14d581d1830b1d9e38379f99740f5bcdd8a75b86
+      image: docker.io/buildpacksio/lifecycle:0.20.6
       imagePullPolicy: Always
       command: ["/cnb/lifecycle/restorer"]
       args:
@@ -160,7 +160,7 @@ spec:
           mountPath: /tekton/home
 
     - name: export
-      image: docker.io/buildpacksio/lifecycle:0.8.1@sha256:261b7f85b4af986b5802eabc14d581d1830b1d9e38379f99740f5bcdd8a75b86
+      image: docker.io/buildpacksio/lifecycle:0.20.6
       imagePullPolicy: Always
       command: ["/cnb/lifecycle/exporter"]
       args:
