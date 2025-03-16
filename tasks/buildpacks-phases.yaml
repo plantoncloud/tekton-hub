@@ -48,8 +48,6 @@ spec:
         value: "$(params.USER_HOME)"
       - name: BP_JVM_VERSION
         value: "$(params.BP_JVM_VERSION)"
-      - name: GOOGLE_APPLICATION_CREDENTIAL
-        value: "/workspace/source/.package-credentials/google-service-account.json"
 
   steps:
     - name: prepare
@@ -128,6 +126,35 @@ spec:
         env
         echo "checking gac"
         cat $GOOGLE_APPLICATION_CREDENTIALS
+
+    # 2) (Optional) Just a standard Gradle step to verify your credentials
+    - name: test-gradle
+      # The official Gradle image, pinned to a version with JDK 21
+      image: gradle:8.10.2-jdk21
+      script: |
+        #!/usr/bin/env bash
+        echo "current dir: $(pwd)"
+        echo "Testing Gradle build with official Gradle Docker image..."
+        echo "List contents of source workspace:"
+        ls -l /workspace/source/
+
+        echo "Check credentials location: $GOOGLE_APPLICATION_CREDENTIALS"
+        ls -l /workspace/source/.package-credentials || true
+
+        echo "Attempting Gradle build..."
+        # If your 'gradlew' is executable, use ./gradlew
+        # Otherwise you can just 'gradle build' if the code doesn't rely on local gradlew scripts.
+        echo "changing to /workspace/source"
+        cd /workspace/source
+        ./gradlew --no-daemon assemble
+      env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: "/workspace/source/.package-credentials/google-service-account.json"
+      volumeMounts:
+        - name: layers-dir
+          mountPath: /layers
+        - name: $(params.CACHE)
+          mountPath: /cache
 
     - name: build
       image: "$(params.BUILDER_IMAGE)"
