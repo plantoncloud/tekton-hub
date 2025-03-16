@@ -76,36 +76,17 @@ spec:
     - name: build-image
       runAfter:
         - setup-package-credentials
-      # This maps the Pipeline params into the inline TaskSpec params
+      taskRef:
+        name: buildpacks-phases
       params:
         - name: BUILDER_IMAGE
           value: "paketobuildpacks/builder:base"
-        - name: PATH
-          value: "."
         - name: IMAGE
           value: "$(params.image-name)"
-      taskSpec:
-        params:
-          - name: BUILDER_IMAGE
-            type: string
-          - name: PATH
-            type: string
-            default: "."
-          - name: IMAGE
-            type: string
-        workspaces:
-          - name: source
-        steps:
-          - name: build
-            image: buildpacksio/pack:latest
-            command: ["pack"]
-            args:
-              - "build"
-              - "--builder"
-              - "paketobuildpacks/builder:base"
-              - "$(params.IMAGE)"
-              - "--path"
-              - "$(params.PATH)"
+        - name: SOURCE_SUBPATH
+          value: ""
+        - name: PROCESS_TYPE
+          value: "web"
       workspaces:
         - name: source
           workspace: source
