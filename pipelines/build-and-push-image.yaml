@@ -5,7 +5,7 @@ metadata:
   namespace: planton-cloud-pipelines
 spec:
   description: >
-    A Pipeline with two distinct tasks (docker-build vs. pack-build)
+    A Pipeline with two distinct tasks (dockerfile vs. buildpacks)
     controlled by the 'image-build-method' parameter.
   params:
     - name: git-url
@@ -69,7 +69,7 @@ spec:
       when:
         - input: "$(params.image-build-method)"
           operator: in
-          values: ["docker-build"]
+          values: ["dockerfile"]
       runAfter:
         - git-checkout
       taskSpec:
@@ -111,7 +111,7 @@ spec:
       when:
         - input: "$(params.image-build-method)"
           operator: in
-          values: ["pack-build"]
+          values: ["buildpacks"]
       runAfter:
         - git-checkout
       taskSpec:
