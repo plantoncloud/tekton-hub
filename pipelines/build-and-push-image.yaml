@@ -97,6 +97,7 @@ spec:
         - name: ENV_VARS
           value:
             - "GOOGLE_APPLICATION_CREDENTIALS=/workspace/source/.package-credentials/google-service-account.json"
+            - "BP_YARN_VERSION=3.6.4"
       workspaces:
         - name: source
           workspace: source
