@@ -71,6 +71,9 @@ spec:
         - name: output
           workspace: source
 
+    ########################################################################
+    # 2) Setup package credentials (optional)
+    ########################################################################
     - name: setup-package-credentials
       when:
         - input: "$(params.setup-package-credentials)"
@@ -94,6 +97,7 @@ spec:
 
     ########################################################################
     # Docker build (runs only if image-build-method == "dockerfile")
+    # Now uses Tekton Hub's Kaniko Task, version 0.6, with Kaniko v1.23.2
     ########################################################################
     - name: docker-build
       when:
@@ -102,34 +106,30 @@ spec:
           values: ["dockerfile"]
       runAfter:
         - setup-package-credentials
-      taskSpec:
-        steps:
-          - name: kaniko-build
-            image: gcr.io/kaniko-project/executor:latest
-            script: |
-              #!/bin/sh
-              set -e
-              echo "Using Kaniko to build Docker image..."
-              /kaniko/executor \
-                --dockerfile "$(workspaces.source.path)/$(params.dockerfile-path)" \
-                --context "$(workspaces.source.path)" \
-                --destination "$(params.image-name)" \
-                --verbosity info
-              echo "Dockerfile-based build completed."
-        workspaces:
-          - name: source
+      taskRef:
+        resolver: hub
         params:
-          - name: image-name
-          - name: dockerfile-path
-
+          - name: type
+            value: tekton
+          - name: kind
+            value: task
+          - name: name
+            value: kaniko
+          - name: version
+            value: "0.6"
       params:
-        - name: image-name
+        - name: IMAGE
           value: "$(params.image-name)"
-        - name: dockerfile-path
-          value: "$(params.dockerfile-path)"
+        - name: DOCKERFILE
+          value: "$(workspaces.source.path)/$(params.dockerfile-path)"
+        - name: CONTEXT
+          value: "$(workspaces.source.path)"
+        - name: BUILDER_IMAGE
+          value: "gcr.io/kaniko-project/executor:v1.23.2"
       workspaces:
         - name: source
           workspace: source
+        # If needed, you can also provide a 'dockerconfig' workspace for registry auth.
 
     ########################################################################
     # 3) Buildpacks build (runs only if image-build-method == "buildpacks")
@@ -152,7 +152,7 @@ spec:
             value: "tasks/buildpacks.yaml"
       params:
         - name: BUILDER_IMAGE
-          value: "paketobuildpacks/builder-jammy-base"
+          value: "$(params.buildpacks-builder-image)"
         - name: APP_IMAGE
           value: "$(params.image-name)"
         - name: SOURCE_SUBPATH
@@ -166,6 +166,9 @@ spec:
         - name: source
           workspace: source
 
+    ########################################################################
+    # 4) Kustomize build
+    ########################################################################
     - name: kustomize-build
       runAfter:
         - git-checkout
