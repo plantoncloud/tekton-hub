@@ -37,6 +37,8 @@ spec:
   workspaces:
     - name: source
       description: "Workspace where source code is cloned"
+    - name: package-credentials
+      description: "Workspace that stores package-credentials required for build"
 
   tasks:
     ########################################################################
