@@ -6,10 +6,10 @@ metadata:
     adr.example.com/reference: "KustomizeBasedTektonTask"
 spec:
   params:
-    - name: configMapName
+    - name: config-map-name
       type: string
       description: The name of the ConfigMap to be created or updated.
-    - name: configMapNamespace
+    - name: config-map-namespace
       type: string
       description: The namespace in which to create/update the ConfigMap.
   workspaces:
@@ -30,8 +30,8 @@ spec:
         if [[ ! -d "${overlays_dir}" ]]; then
           echo "Directory '${overlays_dir}' does not exist. Creating empty ConfigMap..."
 
-          kubectl create configmap "$(params.configMapName)" \
-            --namespace "$(params.configMapNamespace)" \
+          kubectl create configmap "$(params.config-map-name)" \
+            --namespace "$(params.config-map-namespace)" \
             --dry-run=client \
             -o yaml \
           | kubectl apply -f -
@@ -43,8 +43,8 @@ spec:
 
         # 4) Collect all --from-literal arguments in an array, then pass them to kubectl.
         #    Start with the basic `create configmap` command in dry-run mode.
-        KCM_ARGS=( "create" "configmap" "$(params.configMapName)"
-                   "--namespace" "$(params.configMapNamespace)"
+        KCM_ARGS=( "create" "configmap" "$(params.config-map-name)"
+                   "--namespace" "$(params.config-map-namespace)"
                    "--dry-run=client"
                    "-o" "yaml" )
 

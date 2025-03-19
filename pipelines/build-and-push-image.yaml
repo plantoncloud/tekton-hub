@@ -143,3 +143,24 @@ spec:
       workspaces:
         - name: source
           workspace: source
+
+    - name: kustomize-build
+      runAfter:
+        - git-checkout
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: "https://github.com/plantoncloud/tekton-hub.git"
+          - name: revision
+            value: "main"
+          - name: pathInRepo
+            value: "tasks/kustomize-build.yaml"
+      params:
+        - name: config-map-name
+          value: "$(params.kustomize-manifests-config-map-name)"
+        - name: config-map-namespace
+          value: "planton-cloud-pipelines"
+      workspaces:
+        - name: source
+          workspace: source
