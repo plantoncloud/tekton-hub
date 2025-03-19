@@ -94,9 +94,6 @@ spec:
         params:
           - name: image-name
           - name: dockerfile-path
-        metadata:
-          labels:
-            tekton.dev/category: "Image Build"
 
       params:
         - name: image-name
@@ -134,9 +131,6 @@ spec:
         params:
           - name: image-name
           - name: buildpacks-builder-image
-        metadata:
-          labels:
-            tekton.dev/category: "Image Build"
 
       params:
         - name: image-name
