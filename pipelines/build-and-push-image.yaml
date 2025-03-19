@@ -121,9 +121,9 @@ spec:
         - name: IMAGE
           value: "$(params.image-name)"
         - name: DOCKERFILE
-          value: "$(workspaces.source.path)/$(params.dockerfile-path)"
+          value: "./$(params.dockerfile-path)"
         - name: CONTEXT
-          value: "$(workspaces.source.path)"
+          value: "."
         - name: BUILDER_IMAGE
           value: "gcr.io/kaniko-project/executor:v1.23.2"
       workspaces:
