@@ -107,7 +107,7 @@ spec:
           - name: kaniko-build
             image: gcr.io/kaniko-project/executor:latest
             script: |
-              #!/busybox/sh
+              #!/bin/sh
               set -e
               echo "Using Kaniko to build Docker image..."
               /kaniko/executor \
