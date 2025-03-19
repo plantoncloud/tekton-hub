@@ -65,8 +65,29 @@ spec:
         - name: output
           workspace: source
 
+    - name: setup-package-credentials
+      when:
+        - input: "$(params.setup-package-credentials)"
+          operator: in
+          values: ["true"]
+      runAfter:
+        - git-checkout
+      taskSpec:
+        workspaces:
+          - name: source
+          - name: package-credentials
+        steps:
+          - name: copy
+            image: alpine:3
+            script: |
+              mkdir -p /workspace/source/.package-credentials
+              cp /workspace/package-credentials/* /workspace/source/.package-credentials/ || true
+      workspaces:
+        - name: source
+        - name: package-credentials
+
     ########################################################################
-    # 2) Docker build (runs only if image-build-method == "dockerfile")
+    # Docker build (runs only if image-build-method == "dockerfile")
     ########################################################################
     - name: docker-build
       when:
@@ -74,7 +95,7 @@ spec:
           operator: in
           values: ["dockerfile"]
       runAfter:
-        - git-checkout
+        - setup-package-credentials
       taskSpec:
         steps:
           - name: kaniko-build
@@ -113,30 +134,28 @@ spec:
           operator: in
           values: ["buildpacks"]
       runAfter:
-        - git-checkout
-      taskSpec:
-        steps:
-          - name: buildpacks-creator
-            image: "$(params.buildpacks-builder-image)"
-            script: |
-              #!/usr/bin/env bash
-              set -e
-              echo "Using Buildpacks to build image..."
-              /cnb/lifecycle/creator \
-                -app "$(workspaces.source.path)" \
-                "$(params.image-name)"
-              echo "Buildpacks-based build completed."
-        workspaces:
-          - name: source
+        - setup-package-credentials
+      taskRef:
+        resolver: git
         params:
-          - name: image-name
-          - name: buildpacks-builder-image
-
+          - name: url
+            value: "https://github.com/plantoncloud/tekton-hub.git"
+          - name: revision
+            value: "main"
+          - name: pathInRepo
+            value: "tasks/buildpacks.yaml"
       params:
-        - name: image-name
+        - name: BUILDER_IMAGE
+          value: "paketobuildpacks/builder-jammy-base"
+        - name: APP_IMAGE
           value: "$(params.image-name)"
-        - name: buildpacks-builder-image
-          value: "$(params.buildpacks-builder-image)"
+        - name: SOURCE_SUBPATH
+          value: ""
+        - name: PROCESS_TYPE
+          value: ""
+        - name: ENV_VARS
+          value:
+            - "GOOGLE_APPLICATION_CREDENTIALS=/workspace/source/.package-credentials/google-service-account.json"
       workspaces:
         - name: source
           workspace: source
