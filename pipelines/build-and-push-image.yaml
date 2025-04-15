@@ -116,7 +116,7 @@ spec:
           - name: name
             value: kaniko
           - name: version
-            value: "0.6"
+            value: "0.7"
 
       params:
         - name: IMAGE
