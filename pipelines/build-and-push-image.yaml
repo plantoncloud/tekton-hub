@@ -117,6 +117,10 @@ spec:
             value: kaniko
           - name: version
             value: "0.6"
+          - name: EXTRA_ARGS
+            type: array
+            default:
+            - "--verbosity=debug"
       params:
         - name: IMAGE
           value: "$(params.image-name)"
