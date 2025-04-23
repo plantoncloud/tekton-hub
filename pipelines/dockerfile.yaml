@@ -87,10 +87,10 @@ spec:
         - name: package-credentials
 
     ########################################################################
-    # Docker build (runs only if image-build-method == "dockerfile")
+    # Build Image w/ Kaniko using Dockerfile
     # Now uses Tekton Hub's Kaniko Task, version 0.6, with Kaniko v1.23.2
     ########################################################################
-    - name: docker-build
+    - name: build-image (kaniko)
       runAfter:
         - setup-package-credentials
       taskRef:
