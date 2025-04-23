@@ -90,7 +90,7 @@ spec:
     # Build Image w/ Kaniko using Dockerfile
     # Now uses Tekton Hub's Kaniko Task, version 0.6, with Kaniko v1.23.2
     ########################################################################
-    - name: build-image (kaniko)
+    - name: build-image
       runAfter:
         - setup-package-credentials
       taskRef:

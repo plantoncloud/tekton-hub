@@ -89,7 +89,7 @@ spec:
     ########################################################################
     # 3) Build Image w/ Buildpacks
     ########################################################################
-    - name: build-image (buildpacks)
+    - name: build-image
       runAfter:
         - setup-package-credentials
       taskRef:
