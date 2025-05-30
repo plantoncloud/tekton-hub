@@ -12,6 +12,10 @@ spec:
     - name: config-map-namespace
       type: string
       description: The namespace in which to create/update the ConfigMap.
+    - name: project-root
+      type: string
+      description: Relative path to the project's root inside the cloned repo.
+      default: "."
   workspaces:
     - name: source
       description: Directory where application source is located.
@@ -24,7 +28,7 @@ spec:
         set -euxo pipefail
 
         # 1) Define the path to the overlays directory within the source workspace.
-        overlays_dir="/workspace/source/_kustomize/overlays"
+        overlays_dir="/workspace/source/$(params.project-root)/_kustomize/overlays"
 
         # 2) If the overlays directory doesn't exist, create an empty ConfigMap (no data).
         if [[ ! -d "${overlays_dir}" ]]; then
@@ -39,7 +43,7 @@ spec:
         fi
 
         # 3) Change into the "_kustomize" directory so `kubectl kustomize` is relative to `overlays/`.
-        cd "/workspace/source/_kustomize"
+        cd "/workspace/source/$(params.project-root)/_kustomize"
 
         # 4) Collect all --from-literal arguments in an array, then pass them to kubectl.
         #    Start with the basic `create configmap` command in dry-run mode.
@@ -64,7 +68,6 @@ spec:
             if [[ -f service.yaml ]]; then
               encoded="$(base64 -w 0 service.yaml)"
               # `--from-literal=env=base64data` will place it under data.env in the resulting ConfigMap.
-              # If env contains special chars, it might need quoting, but for typical env names it’s fine.
               KCM_ARGS+=( "--from-literal=${env}=${encoded}" )
 
               # Clean up
