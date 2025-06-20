@@ -32,6 +32,10 @@ spec:
       type: string
       description: "Relative path to the project's root inside the cloned repo"
       default: "."
+    - name: sparse-checkout-directories
+      type: string
+      description: "list of comma separated directory patterns to git-clone Task's sparseCheckoutDirectories param"
+      default: ""
 
   workspaces:
     - name: source
@@ -62,6 +66,8 @@ spec:
           value: "$(params.git-revision)"
         - name: deleteExisting
           value: "true"
+        - name: sparseCheckoutDirectories
+          value: "$(params.sparse-checkout-directories)"
       workspaces:
         - name: output
           workspace: source
