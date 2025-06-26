@@ -19,7 +19,7 @@ spec:
     - name: kustomizeBaseDirectory
       type: string
       description: Path to the kustomize base directory (relative to project root).
-      default: "_kustomize"
+      default: ""
   workspaces:
     - name: source
       description: Directory where application source is located.

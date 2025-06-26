@@ -21,10 +21,10 @@ spec:
       type: string
       description: "Relative path to the project's root inside the cloned repo"
       default: "."
-    - name: kustomizeBaseDirectory                 # ➜ NEW
+    - name: kustomizeBaseDirectory
       type: string
       description: "Relative path to the kustomize base directory inside project root"
-      default: "_kustomize"
+      default: ""
 
   workspaces:
     - name: source
@@ -79,7 +79,7 @@ spec:
           value: "planton-cloud-pipelines"
         - name: project-root
           value: "$(params.project-root)"
-        - name: kustomizeBaseDirectory              # ➜ NEW
+        - name: kustomizeBaseDirectory
           value: "$(params.kustomizeBaseDirectory)"
       workspaces:
         - name: source

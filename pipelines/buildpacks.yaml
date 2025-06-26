@@ -36,6 +36,10 @@ spec:
       type: string
       description: "list of comma separated directory patterns to git-clone Task's sparseCheckoutDirectories param"
       default: ""
+    - name: kustomizeBaseDirectory
+      type: string
+      description: "Relative path to the kustomize base directory inside project root"
+      default: "_kustomize"
 
   workspaces:
     - name: source
@@ -149,6 +153,8 @@ spec:
           value: "planton-cloud-pipelines"
         - name: project-root
           value: "$(params.project-root)"
+        - name: kustomizeBaseDirectory
+          value: "$(params.kustomizeBaseDirectory)"
       workspaces:
         - name: source
           workspace: source
