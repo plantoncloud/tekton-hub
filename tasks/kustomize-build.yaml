@@ -16,6 +16,10 @@ spec:
       type: string
       description: Relative path to the project's root inside the cloned repo.
       default: "."
+    - name: kustomizeBaseDirectory
+      type: string
+      description: Path to the kustomize base directory (relative to project root).
+      default: "_kustomize"
   workspaces:
     - name: source
       description: Directory where application source is located.
@@ -27,56 +31,41 @@ spec:
         #!/usr/bin/env bash
         set -euxo pipefail
 
-        # 1) Define the path to the overlays directory within the source workspace.
-        overlays_dir="/workspace/source/$(params.project-root)/_kustomize/overlays"
+        # Path to overlays directory inside the workspace
+        overlays_dir="/workspace/source/$(params.project-root)/$(params.kustomizeBaseDirectory)/overlays"
 
-        # 2) If the overlays directory doesn't exist, create an empty ConfigMap (no data).
+        # If overlays are missing, create (or update) an empty ConfigMap
         if [[ ! -d "${overlays_dir}" ]]; then
-          echo "Directory '${overlays_dir}' does not exist. Creating empty ConfigMap..."
-
+          echo "Directory '${overlays_dir}' does not exist; creating empty ConfigMap."
           kubectl create configmap "$(params.config-map-name)" \
             --namespace "$(params.config-map-namespace)" \
-            --dry-run=client \
-            -o yaml \
-          | kubectl apply -f -
+            --dry-run=client -o yaml | kubectl apply -f -
           exit 0
         fi
 
-        # 3) Change into the "_kustomize" directory so `kubectl kustomize` is relative to `overlays/`.
-        cd "/workspace/source/$(params.project-root)/_kustomize"
+        # Change into the kustomize base directory
+        cd "/workspace/source/$(params.project-root)/$(params.kustomizeBaseDirectory)"
 
-        # 4) Collect all --from-literal arguments in an array, then pass them to kubectl.
-        #    Start with the basic `create configmap` command in dry-run mode.
+        # Prepare kubectl create configmap arguments
         KCM_ARGS=( "create" "configmap" "$(params.config-map-name)"
                    "--namespace" "$(params.config-map-namespace)"
-                   "--dry-run=client"
-                   "-o" "yaml" )
+                   "--dry-run=client" "-o" "yaml" )
 
-        # 5) Loop over each overlay directory (each environment).
+        # Iterate over each environment overlay
         for env_dir in overlays/*; do
-          if [[ -d "${env_dir}" ]]; then
-            env="$(basename "${env_dir}")"
-            echo "Processing environment: ${env}"
+          [[ -d "${env_dir}" ]] || continue
+          env="$(basename "${env_dir}")"
+          echo "Processing environment: ${env}"
 
-            # Run kubectl kustomize for this overlay.
-            if ! kubectl kustomize "overlays/${env}" > service.yaml; then
-              echo "Kustomize build failed for environment '${env}'. Exiting."
-              exit 1
-            fi
-
-            # If service.yaml is generated, base64-encode and add as a literal entry.
-            if [[ -f service.yaml ]]; then
-              encoded="$(base64 -w 0 service.yaml)"
-              # `--from-literal=env=base64data` will place it under data.env in the resulting ConfigMap.
-              KCM_ARGS+=( "--from-literal=${env}=${encoded}" )
-
-              # Clean up
-              rm -f service.yaml
-            else
-              echo "No service.yaml found for environment '${env}'."
-            fi
+          # Capture kustomize output and encode directly—no temp file required
+          if ! encoded_yaml=$(kubectl kustomize "overlays/${env}" | base64 -w 0); then
+            echo "Kustomize build failed for environment '${env}'."
+            exit 1
           fi
+
+          # Add literal entry for this env
+          KCM_ARGS+=( "--from-literal=${env}=${encoded_yaml}" )
         done
 
-        # 6) Run kubectl with the collected arguments to generate YAML, then pipe to kubectl apply.
+        # Create/update the ConfigMap
         "${KUBECTL_BIN:-kubectl}" "${KCM_ARGS[@]}" | kubectl apply -f -
