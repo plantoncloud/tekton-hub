@@ -53,6 +53,8 @@ spec:
           value: "$(params.git-revision)"
         - name: deleteExisting
           value: "true"
+        - name: gitInitImage
+          value: "ghcr.io/tektoncd/github.com/tektoncd/pipeline/cmd/git-init:v0.45.0"
       workspaces:
         - name: output
           workspace: source
