@@ -129,7 +129,7 @@ spec:
         - name: CONTEXT
           value: "$(params.project-root)"                            # CHANGED
         - name: BUILDER_IMAGE
-          value: "gcr.io/kaniko-project/executor:v1.23.2"
+          value: "gcr.io/kaniko-project/executor:v1.24.0"
       workspaces:
         - name: source
           workspace: source
