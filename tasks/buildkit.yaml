@@ -46,7 +46,7 @@ spec:
       image: "$(params.buildkitImage)"
       workingDir: "$(workspaces.source.path)/$(params.contextDir)"
       securityContext:
-        privileged: false          # required even for rootless image
+        privileged: true          # required even for rootless image
       env:
         - name: DOCKER_CONFIG
           value: "$(workspaces.dockerconfig.path)"
