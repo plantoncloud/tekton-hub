@@ -103,37 +103,30 @@ spec:
         - name: package-credentials
 
     ########################################################################
-    # Build Image w/ Kaniko using Dockerfile
-    # Now uses Tekton Hub's Kaniko Task, version 0.6, with Kaniko v1.23.2
+    # Build Image with BuildKit (daemon‑less)
     ########################################################################
     - name: build-image
-      runAfter:
-        - setup-package-credentials
       taskRef:
-        resolver: hub
+        resolver: git
         params:
-          - name: type
-            value: tekton
-          - name: kind
-            value: task
-          - name: name
-            value: kaniko
-          - name: version
-            value: "0.7"
-
+          - name: url
+            value: "https://github.com/plantoncloud/tekton-hub.git"
+          - name: revision
+            value: "main"
+          - name: pathInRepo
+            value: "tasks/buildkit.yaml"
       params:
-        - name: IMAGE
+        - name: image
           value: "$(params.image-name)"
-        - name: DOCKERFILE
-          value: "$(params.project-root)/$(params.dockerfile-path)"   # CHANGED
-        - name: CONTEXT
-          value: "$(params.project-root)"                            # CHANGED
-        - name: BUILDER_IMAGE
-          value: "gcr.io/kaniko-project/executor:v1.24.0"
+        - name: contextDir
+          value: "$(params.project-root)"
+        - name: dockerfilePath
+          value: "$(params.dockerfile-path)"
       workspaces:
         - name: source
           workspace: source
-        # If needed, you can also provide a 'dockerconfig' workspace for registry auth.
+      # - name: dockerconfig
+      #   workspace: dockerconfig  # mount registry creds if required
 
     ########################################################################
     # 4) Kustomize build

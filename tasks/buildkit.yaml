@@ -1,0 +1,80 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: buildkit-daemonless
+spec:
+  description: >
+    Build and push OCI‑compatible images using BuildKit in daemon‑less mode.
+
+  # ------------------------------ parameters -----------------------------
+  params:
+    - name: image                  # registry/repo:tag
+      type: string
+    - name: contextDir             # build context directory
+      type: string
+      default: "."
+    - name: dockerfilePath         # Dockerfile relative to contextDir
+      type: string
+      default: "Dockerfile"
+    - name: platforms              # e.g. linux/amd64,linux/arm64
+      type: string
+      default: ""
+    - name: cache                  # "true" ➜ inline cache
+      type: string
+      default: "true"
+    - name: push                   # "true" ➜ push to registry
+      type: string
+      default: "true"
+    - name: buildArgs              # each line KEY=value
+      type: string
+      default: ""
+    - name: buildkitImage          # override only if needed
+      type: string
+      default: "moby/buildkit:v0.23.2-rootless"
+
+  # ------------------------------ workspaces -----------------------------
+  workspaces:
+    - name: source                 # mandatory source workspace
+      description: Source code
+    - name: dockerconfig           # optional registry creds
+      optional: true
+      description: Holds .docker/config.json
+
+  # ------------------------------ steps ---------------------------------
+  steps:
+    - name: build-and-push
+      image: "$(params.buildkitImage)"
+      workingDir: "$(workspaces.source.path)/$(params.contextDir)"
+      securityContext:
+        privileged: true           # required even for rootless image
+      env:
+        - name: DOCKER_CONFIG
+          value: "$(workspaces.dockerconfig.path)"
+        - name: BUILDKITD_FLAGS
+          value: --oci-worker-no-process-sandbox
+      script: |
+        #!/usr/bin/env sh
+        set -eux
+
+        extra_opts=""
+
+        [ -n "$(params.platforms)" ] && \
+          extra_opts="$extra_opts --opt platform=$(params.platforms)"
+
+        if [ "$(params.cache)" = "true" ]; then
+          extra_opts="$extra_opts --export-cache type=inline \
+            --import-cache type=registry,ref=$(params.image)"
+        fi
+
+        printf '%s\n' "$(params.buildArgs)" | while IFS= read -r arg; do
+          [ -z "$arg" ] || extra_opts="$extra_opts --opt build-arg:$arg"
+        done
+
+        buildctl-daemonless.sh build \
+          --frontend=dockerfile.v0 \
+          --opt filename=$(params.dockerfilePath) \
+          --local context=$(workspaces.source.path)/$(params.contextDir) \
+          --local dockerfile=$(workspaces.source.path)/$(params.contextDir) \
+          $extra_opts \
+          --output type=image,name=$(params.image),push=$(params.push) \
+          --progress=plain
