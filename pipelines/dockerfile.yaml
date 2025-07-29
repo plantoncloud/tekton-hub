@@ -124,6 +124,8 @@ spec:
           value: "$(params.project-root)"
         - name: dockerfilePath
           value: "$(params.dockerfile-path)"
+        - name: cache
+          value: "true"
       workspaces:
         - name: source
           workspace: source
