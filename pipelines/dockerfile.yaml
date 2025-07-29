@@ -106,6 +106,8 @@ spec:
     # Build Image with BuildKit (daemon‑less)
     ########################################################################
     - name: build-image
+      runAfter:
+        - git-checkout
       taskRef:
         resolver: git
         params:
