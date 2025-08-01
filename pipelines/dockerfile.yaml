@@ -137,9 +137,9 @@ spec:
           value: "$(params.dockerfile-path)"
         - name: cache
           value: "true"
-        - name: dockerfileConfigMapNamespace
+        - name: dockerfile-config-map-namespace
           value: "planton-cloud-pipelines"
-        - name: dockerfileConfigMapName
+        - name: dockerfile-config-map-name
           value: "$(params.dockerfile-config-map-name)"
         - name: owner-identifier-label-key
           value: "$(params.owner-identifier-label-key)"

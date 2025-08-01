@@ -32,10 +32,10 @@ spec:
       type: string
       default: "docker.io/moby/buildkit:v0.23.2-rootless"
     # --- new parameters --------------------------------------------------
-    - name: dockerfileConfigMapName
+    - name: dockerfile-config-map-name
       type: string
       description: Name of the ConfigMap that will store the Dockerfile content.
-    - name: dockerfileConfigMapNamespace
+    - name: dockerfile-config-map-namespace
       type: string
       description: Namespace in which to create/update the ConfigMap.
       default: "planton-cloud-pipelines"
@@ -78,17 +78,17 @@ spec:
           exit 1
         fi
 
-        echo "Creating/updating ConfigMap '$(params.dockerfileConfigMapName)'..."
+        echo "Creating/updating ConfigMap '$(params.dockerfile-config-map-name)'..."
         encoded="$(base64 -w 0 "$file_path")"
 
-        kubectl create configmap "$(params.dockerfileConfigMapName)" \
-          --namespace "$(params.dockerfileConfigMapNamespace)" \
+        kubectl create configmap "$(params.dockerfile-config-map-name)" \
+          --namespace "$(params.dockerfile-config-map-namespace)" \
           --from-literal=Dockerfile="$encoded" \
           --dry-run=client -o yaml | kubectl apply -f -
 
         if [[ -n "$(params.owner-identifier-label-key)" && -n "$(params.owner-identifier-label-value)" ]]; then
-          kubectl label configmap "$(params.dockerfileConfigMapName)" \
-            --namespace "$(params.dockerfileConfigMapNamespace)" \
+          kubectl label configmap "$(params.dockerfile-config-map-name)" \
+            --namespace "$(params.dockerfile-config-map-namespace)" \
             "$(params.owner-identifier-label-key)=$(params.owner-identifier-label-value)" --overwrite
         fi
 
