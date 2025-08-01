@@ -20,6 +20,16 @@ spec:
       type: string
       description: Path to the kustomize base directory (relative to project root).
       default: ""
+    # ────────────────────────────────────────────────────────────────
+    # NEW optional label parameters
+    - name: labelKey
+      type: string
+      description: Optional label key to apply to the ConfigMap.
+      default: ""
+    - name: labelValue
+      type: string
+      description: Optional label value to apply to the ConfigMap.
+      default: ""
   workspaces:
     - name: source
       description: Directory where application source is located.
@@ -34,12 +44,23 @@ spec:
         # Path to overlays directory inside the workspace
         overlays_dir="/workspace/source/$(params.project-root)/$(params.kustomizeBaseDirectory)/overlays"
 
+        # Helper: label the ConfigMap if label params were provided
+        label_configmap() {
+          if [[ -n "$(params.labelKey)" && -n "$(params.labelValue)" ]]; then
+            "${KUBECTL_BIN:-kubectl}" label configmap "$(params.config-map-name)" \
+              --namespace "$(params.config-map-namespace)" \
+              "$(params.labelKey)=$(params.labelValue)" \
+              --overwrite
+          fi
+        }
+
         # If overlays are missing, create (or update) an empty ConfigMap
         if [[ ! -d "${overlays_dir}" ]]; then
           echo "Directory '${overlays_dir}' does not exist; creating empty ConfigMap."
           kubectl create configmap "$(params.config-map-name)" \
             --namespace "$(params.config-map-namespace)" \
             --dry-run=client -o yaml | kubectl apply -f -
+          label_configmap
           exit 0
         fi
 
@@ -69,3 +90,4 @@ spec:
 
         # Create/update the ConfigMap
         "${KUBECTL_BIN:-kubectl}" "${KCM_ARGS[@]}" | kubectl apply -f -
+        label_configmap
