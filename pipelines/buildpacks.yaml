@@ -169,7 +169,6 @@ spec:
           value: "$(params.owner-identifier-label-key)"
         - name: owner-identifier-label-value
           value: "$(params.owner-identifier-label-value)"
-
       workspaces:
         - name: source
           workspace: source

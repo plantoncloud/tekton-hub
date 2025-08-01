@@ -175,6 +175,10 @@ spec:
           value: "$(params.project-root)"
         - name: kustomize-base-directory
           value: "$(params.kustomize-base-directory)"
+        - name: owner-identifier-label-key
+          value: "$(params.owner-identifier-label-key)"
+        - name: owner-identifier-label-value
+          value: "$(params.owner-identifier-label-value)"
       workspaces:
         - name: source
           workspace: source
