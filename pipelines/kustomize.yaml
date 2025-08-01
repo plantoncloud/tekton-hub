@@ -25,6 +25,14 @@ spec:
       type: string
       description: "Relative path to the kustomize base directory inside project root"
       default: ""
+    - name: ownerIdentifierLabelKey
+      type: string
+      description: Optional owner identifier label key to add to the ConfigMap
+      default: ""
+    - name: ownerIdentifierLabelValue
+      type: string
+      description: Optional owner identifier label value
+      default: ""
 
   workspaces:
     - name: source
@@ -83,6 +91,10 @@ spec:
           value: "$(params.project-root)"
         - name: kustomizeBaseDirectory
           value: "$(params.kustomizeBaseDirectory)"
+        - name: ownerIdentifierLabelKey
+          value: "$(params.owner-identifier-label-key)"
+        - name: ownerIdentifierLabelValue
+          value: "$(params.owner-identifier-label-value)"
       workspaces:
         - name: source
           workspace: source

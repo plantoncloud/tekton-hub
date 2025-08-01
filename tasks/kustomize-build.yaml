@@ -21,14 +21,13 @@ spec:
       description: Path to the kustomize base directory (relative to project root).
       default: ""
     # ────────────────────────────────────────────────────────────────
-    # NEW optional label parameters
-    - name: labelKey
+    - name: ownerIdentifierLabelKey
       type: string
-      description: Optional label key to apply to the ConfigMap.
+      description: Optional owner identifier label key to apply to the ConfigMap.
       default: ""
-    - name: labelValue
+    - name: ownerIdentifierLabelValue
       type: string
-      description: Optional label value to apply to the ConfigMap.
+      description: Optional owner identifier label value to apply to the ConfigMap.
       default: ""
   workspaces:
     - name: source
@@ -46,10 +45,10 @@ spec:
 
         # Helper: label the ConfigMap if label params were provided
         label_configmap() {
-          if [[ -n "$(params.labelKey)" && -n "$(params.labelValue)" ]]; then
+          if [[ -n "$(params.ownerIdentifierLabelKey)" && -n "$(params.ownerIdentifierLabelValue)" ]]; then
             "${KUBECTL_BIN:-kubectl}" label configmap "$(params.config-map-name)" \
               --namespace "$(params.config-map-namespace)" \
-              "$(params.labelKey)=$(params.labelValue)" \
+              "$(params.ownerIdentifierLabelKey)=$(params.ownerIdentifierLabelValue)" \
               --overwrite
           fi
         }
