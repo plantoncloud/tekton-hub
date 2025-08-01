@@ -39,6 +39,14 @@ spec:
       type: string
       description: Namespace in which to create/update the ConfigMap.
       default: "planton-cloud-pipelines"
+    - name: labelKey
+      type: string
+      description: Optional label key to add to the ConfigMap
+      default: ""
+    - name: labelValue
+      type: string
+      description: Optional label value
+      default: ""
 
   workspaces:
     - name: source
@@ -77,6 +85,12 @@ spec:
           --namespace "$(params.dockerfileConfigMapNamespace)" \
           --from-literal=Dockerfile="$encoded" \
           --dry-run=client -o yaml | kubectl apply -f -
+
+        if [[ -n "$(params.labelKey)" && -n "$(params.labelValue)" ]]; then
+          kubectl label configmap "$(params.dockerfileConfigMapName)" \
+            --namespace "$(params.dockerfileConfigMapNamespace)" \
+            "$(params.labelKey)=$(params.labelValue)" --overwrite
+        fi
 
     # ------------------- build and push image ---------------------
     - name: build-and-push
