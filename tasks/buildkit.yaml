@@ -31,6 +31,14 @@ spec:
     - name: buildkitImage          # override only if needed
       type: string
       default: "moby/buildkit:v0.23.2-rootless"
+    # --- new parameters ---
+    - name: dockerfileConfigMapName
+      type: string
+      description: Name of the ConfigMap that will store the Dockerfile content.
+    - name: dockerfileConfigMapNamespace
+      type: string
+      description: Namespace in which to create/update the ConfigMap.
+      default: "planton-cloud-pipelines"
 
   # ------------------------------ workspaces -----------------------------
   workspaces:
@@ -76,3 +84,30 @@ spec:
           $extra_opts \
           --output type=image,name=$(params.image),push=$(params.push) \
           --progress=plain
+
+    # ------------------- new step: export Dockerfile ---------------------
+    - name: export-dockerfile
+      image: bitnami/kubectl:latest
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        dockerfile_path="$(workspaces.source.path)/$(params.contextDir)/$(params.dockerfilePath)"
+        if [[ ! -f "$dockerfile_path" ]]; then
+          echo "Dockerfile not found at $dockerfile_path"
+          exit 1
+        fi
+
+        echo "Creating/updating ConfigMap '$(params.dockerfileConfigMapName)'..."
+        encoded="$(base64 -w 0 "$dockerfile_path")"
+
+        kubectl create configmap "$(params.dockerfileConfigMapName)" \
+          --namespace "$(params.dockerfileConfigMapNamespace)" \
+          --from-literal=Dockerfile="$encoded" \
+          --dry-run=client -o yaml | kubectl apply -f -
+
+  volumes:
+    - name: empty-dir
+      emptyDir: {}
+    - name: layers-dir
+      emptyDir: {}

@@ -40,6 +40,9 @@ spec:
       type: string
       description: "Relative path to the kustomize base directory inside project root"
       default: "_kustomize"
+    - name: dockerfile-config-map-name
+      type: string
+      description: "Name of the config-map to store dockerfile content"
 
   workspaces:
     - name: source
@@ -126,6 +129,10 @@ spec:
           value: "$(params.dockerfile-path)"
         - name: cache
           value: "true"
+        - name: dockerfileConfigMapNamespace
+          value: "planton-cloud-pipelines"
+        - name: dockerfileConfigMapName
+          value: "$(params.dockerfile-config-map-name)"
       workspaces:
         - name: source
           workspace: source
