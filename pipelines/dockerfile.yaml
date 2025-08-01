@@ -36,18 +36,18 @@ spec:
       type: string
       description: "list of comma separated directory patterns to git-clone Task's sparseCheckoutDirectories param"
       default: ""
-    - name: kustomizeBaseDirectory
+    - name: kustomize-base-directory
       type: string
       description: "Relative path to the kustomize base directory inside project root"
       default: "_kustomize"
     - name: dockerfile-config-map-name
       type: string
       description: "Name of the config-map to store dockerfile content"
-    - name: ownerIdentifierLabelKey
+    - name: owner-identifier-label-key
       type: string
       description: Optional owner identifier label key to add to the ConfigMap
       default: ""
-    - name: ownerIdentifierLabelValue
+    - name: owner-identifier-label-value
       type: string
       description: Optional owner identifier label value
       default: ""
@@ -141,9 +141,9 @@ spec:
           value: "planton-cloud-pipelines"
         - name: dockerfileConfigMapName
           value: "$(params.dockerfile-config-map-name)"
-        - name: ownerIdentifierLabelKey
+        - name: owner-identifier-label-key
           value: "$(params.owner-identifier-label-key)"
-        - name: ownerIdentifierLabelValue
+        - name: owner-identifier-label-value
           value: "$(params.owner-identifier-label-value)"
       workspaces:
         - name: source
@@ -173,8 +173,8 @@ spec:
           value: "planton-cloud-pipelines"
         - name: project-root
           value: "$(params.project-root)"
-        - name: kustomizeBaseDirectory
-          value: "$(params.kustomizeBaseDirectory)"
+        - name: kustomize-base-directory
+          value: "$(params.kustomize-base-directory)"
       workspaces:
         - name: source
           workspace: source

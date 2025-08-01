@@ -16,16 +16,16 @@ spec:
       type: string
       description: Relative path to the project's root inside the cloned repo.
       default: "."
-    - name: kustomizeBaseDirectory
+    - name: kustomize-base-directory
       type: string
       description: Path to the kustomize base directory (relative to project root).
       default: ""
     # ────────────────────────────────────────────────────────────────
-    - name: ownerIdentifierLabelKey
+    - name: owner-identifier-label-key
       type: string
       description: Optional owner identifier label key to apply to the ConfigMap.
       default: ""
-    - name: ownerIdentifierLabelValue
+    - name: owner-identifier-label-value
       type: string
       description: Optional owner identifier label value to apply to the ConfigMap.
       default: ""
@@ -41,14 +41,14 @@ spec:
         set -euxo pipefail
 
         # Path to overlays directory inside the workspace
-        overlays_dir="/workspace/source/$(params.project-root)/$(params.kustomizeBaseDirectory)/overlays"
+        overlays_dir="/workspace/source/$(params.project-root)/$(params.kustomize-base-directory)/overlays"
 
         # Helper: label the ConfigMap if label params were provided
         label_configmap() {
-          if [[ -n "$(params.ownerIdentifierLabelKey)" && -n "$(params.ownerIdentifierLabelValue)" ]]; then
+          if [[ -n "$(params.owner-identifier-label-key)" && -n "$(params.owner-identifier-label-value)" ]]; then
             "${KUBECTL_BIN:-kubectl}" label configmap "$(params.config-map-name)" \
               --namespace "$(params.config-map-namespace)" \
-              "$(params.ownerIdentifierLabelKey)=$(params.ownerIdentifierLabelValue)" \
+              "$(params.owner-identifier-label-key)=$(params.owner-identifier-label-value)" \
               --overwrite
           fi
         }
@@ -64,7 +64,7 @@ spec:
         fi
 
         # Change into the kustomize base directory
-        cd "/workspace/source/$(params.project-root)/$(params.kustomizeBaseDirectory)"
+        cd "/workspace/source/$(params.project-root)/$(params.kustomize-base-directory)"
 
         # Prepare kubectl create configmap arguments
         KCM_ARGS=( "create" "configmap" "$(params.config-map-name)"
