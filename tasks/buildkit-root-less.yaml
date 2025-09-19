@@ -57,7 +57,7 @@ spec:
   steps:
     # ------------------- new step: export Dockerfile ---------------------
     - name: export-dockerfile
-      image: bitnami/kubectl:latest
+      image: bitnamilegacy/kubectl:latest
       workingDir: "$(workspaces.source.path)/$(params.contextDir)"
       securityContext:
         runAsUser: 1000

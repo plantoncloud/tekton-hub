@@ -35,7 +35,7 @@ spec:
 
   steps:
     - name: kustomize-build
-      image: bitnami/kubectl:latest
+      image: bitnamilegacy/kubectl:latest
       script: |
         #!/usr/bin/env bash
         set -euxo pipefail

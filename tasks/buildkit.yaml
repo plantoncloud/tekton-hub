@@ -60,7 +60,7 @@ spec:
   steps:
     # ------------------- export Dockerfile ---------------------
     - name: export-dockerfile
-      image: bitnami/kubectl:latest
+      image: bitnamilegacy/kubectl:latest
       script: |
         #!/usr/bin/env bash
         set -euo pipefail
