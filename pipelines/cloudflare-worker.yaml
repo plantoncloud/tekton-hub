@@ -276,24 +276,28 @@ spec:
               
               echo "Creating ConfigMap with artifact metadata..."
               
-              # Build labels argument
-              LABELS="app.kubernetes.io/managed-by=planton-cloud"
-              if [ -n "$(params.owner-identifier-label-key)" ] && [ -n "$(params.owner-identifier-label-value)" ]; then
-                LABELS="$LABELS,$(params.owner-identifier-label-key)=$(params.owner-identifier-label-value)"
-              fi
-              
-              # Create ConfigMap with metadata
+              # Create or update ConfigMap
               kubectl create configmap $(params.config-map-name) \
                 --from-literal=bucket=$(params.r2-bucket-name) \
                 --from-literal=path=$(params.r2-object-key) \
                 --from-literal=content-hash=$(params.bundle-hash) \
                 --from-literal=size-bytes=$(params.bundle-size) \
                 --namespace=$(params.config-map-namespace) \
-                --dry-run=client -o yaml | \
-              kubectl label -f - \
-                $LABELS \
-                --dry-run=client --local -o yaml | \
-              kubectl apply -f -
+                --dry-run=client -o yaml | kubectl apply -f -
+              
+              # Apply base label
+              kubectl label configmap $(params.config-map-name) \
+                --namespace=$(params.config-map-namespace) \
+                app.kubernetes.io/managed-by=planton-cloud \
+                --overwrite
+              
+              # Apply owner identifier label if provided
+              if [ -n "$(params.owner-identifier-label-key)" ] && [ -n "$(params.owner-identifier-label-value)" ]; then
+                kubectl label configmap $(params.config-map-name) \
+                  --namespace=$(params.config-map-namespace) \
+                  $(params.owner-identifier-label-key)=$(params.owner-identifier-label-value) \
+                  --overwrite
+              fi
               
               echo "ConfigMap $(params.config-map-name) created/updated successfully"
       params:
