@@ -214,20 +214,13 @@ spec:
           - name: upload
             image: amazon/aws-cli:latest
             workingDir: /workspace/source/$(params.project-root)
-            env:
-              - name: AWS_ACCESS_KEY_ID
-                valueFrom:
-                  secretKeyRef:
-                    name: r2-credentials
-                    key: access-key-id
-              - name: AWS_SECRET_ACCESS_KEY
-                valueFrom:
-                  secretKeyRef:
-                    name: r2-credentials
-                    key: secret-access-key
             script: |
               #!/bin/bash
               set -e
+              
+              # Read R2 credentials from workspace mount
+              export AWS_ACCESS_KEY_ID=$(cat /workspace/r2-credentials/access-key-id)
+              export AWS_SECRET_ACCESS_KEY=$(cat /workspace/r2-credentials/secret-access-key)
               
               echo "Uploading worker bundle to R2..."
               echo "Bucket: $(params.r2-bucket-name)"
