@@ -112,8 +112,12 @@ spec:
           [ -z "$arg" ] || extra_opts="$extra_opts --opt build-arg:$arg"
         done
 
+        # Use modern dockerfile frontend (v1) for proper ARG variable expansion
+        # The legacy dockerfile.v0 has known bugs with ARG expansion in COPY instructions
+        # See: https://github.com/moby/buildkit/issues/2374
         buildctl-daemonless.sh build \
-          --frontend=dockerfile.v0 \
+          --frontend=gateway.v0 \
+          --opt source=docker/dockerfile:1 \
           --opt filename=$(params.dockerfilePath) \
           --local context=$(workspaces.source.path)/$(params.contextDir) \
           --local dockerfile=$(workspaces.source.path)/$(params.contextDir) \
