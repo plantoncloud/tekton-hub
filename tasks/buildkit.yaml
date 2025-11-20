@@ -108,14 +108,9 @@ spec:
             --import-cache type=registry,ref=$(params.image)"
         fi
 
-        build_args="$(params.buildArgs)"
-        if [ -n "$build_args" ]; then
-          while IFS= read -r arg; do
-            [ -z "$arg" ] || extra_opts="$extra_opts --opt build-arg:$arg"
-          done <<EOF
-$build_args
-EOF
-        fi
+        printf '%s\n' "$(params.buildArgs)" | while IFS= read -r arg; do
+          [ -z "$arg" ] || extra_opts="$extra_opts --opt build-arg:$arg"
+        done
 
         # Use modern dockerfile frontend (v1) for proper ARG variable expansion
         # The legacy dockerfile.v0 has known bugs with ARG expansion in COPY instructions
