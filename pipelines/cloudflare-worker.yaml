@@ -14,6 +14,10 @@ spec:
       type: string
       description: "Git revision to checkout"
       default: "main"
+    - name: git-branch
+      type: string
+      description: "Git branch name"
+      default: ""
     - name: project-root
       type: string
       description: "Relative path to the project's root inside the cloned repo"
