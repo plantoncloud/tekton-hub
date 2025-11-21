@@ -5,18 +5,18 @@
 ```bash
 # Register this pipeline
 planton tekton pipeline register \
-  --yaml-file=pipelines/kustomize.yaml \
+  --yaml-file=kustomize.yaml \
   --name="Build Kustomize Directory" \
   --description="Generate Kubernetes manifests from Kustomize directory for all environments" \
   --git-web-url="https://github.com/plantoncloud/tekton-hub/blob/main/pipelines/kustomize.yaml" \
   --git-clone-url="https://github.com/plantoncloud/tekton-hub.git" \
   --git-file-path="pipelines/kustomize.yaml" \
-  --overview-markdown-file=pipelines/kustomize.md \
+  --overview-markdown-file=kustomize.md \
   --tags="pipeline,kustomize,kubernetes,manifests" \
   --platform
 
 # Validate the manifest
-planton tekton pipeline validate --yaml-file=pipelines/kustomize.yaml
+planton tekton pipeline validate --yaml-file=kustomize.yaml
 ```
 
 ## Purpose

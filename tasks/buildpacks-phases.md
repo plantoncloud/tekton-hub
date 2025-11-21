@@ -5,18 +5,18 @@
 ```bash
 # Register this task
 planton tekton task register \
-  --yaml-file=tasks/buildpacks-phases.yaml \
+  --yaml-file=buildpacks-phases.yaml \
   --name="Buildpacks Phases" \
   --description="Build images using individual CNB lifecycle phases for debugging and customization" \
   --git-web-url="https://github.com/plantoncloud/tekton-hub/blob/main/tasks/buildpacks-phases.yaml" \
   --git-clone-url="https://github.com/plantoncloud/tekton-hub.git" \
   --git-file-path="tasks/buildpacks-phases.yaml" \
-  --overview-markdown-file=tasks/buildpacks-phases.md \
+  --overview-markdown-file=buildpacks-phases.md \
   --tags="container-build,buildpacks,cnb,lifecycle,debugging" \
   --platform
 
 # Validate the manifest
-planton tekton task validate --yaml-file=tasks/buildpacks-phases.yaml
+planton tekton task validate --yaml-file=buildpacks-phases.yaml
 ```
 
 ## Purpose

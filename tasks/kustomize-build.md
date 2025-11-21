@@ -5,18 +5,18 @@
 ```bash
 # Register this task
 planton tekton task register \
-  --yaml-file=tasks/kustomize-build.yaml \
+  --yaml-file=kustomize-build.yaml \
   --name="Kustomize Build" \
   --description="Build Kustomize overlays and store manifests in ConfigMap" \
   --git-web-url="https://github.com/plantoncloud/tekton-hub/blob/main/tasks/kustomize-build.yaml" \
   --git-clone-url="https://github.com/plantoncloud/tekton-hub.git" \
   --git-file-path="tasks/kustomize-build.yaml" \
-  --overview-markdown-file=tasks/kustomize-build.md \
+  --overview-markdown-file=kustomize-build.md \
   --tags="kustomize,kubernetes,manifests" \
   --platform
 
 # Validate the manifest
-planton tekton task validate --yaml-file=tasks/kustomize-build.yaml
+planton tekton task validate --yaml-file=kustomize-build.yaml
 ```
 
 ## Purpose

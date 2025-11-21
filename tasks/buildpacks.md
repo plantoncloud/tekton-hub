@@ -5,18 +5,18 @@
 ```bash
 # Register this task
 planton tekton task register \
-  --yaml-file=tasks/buildpacks.yaml \
+  --yaml-file=buildpacks.yaml \
   --name="Buildpacks" \
   --description="Build source into container images using Cloud Native Buildpacks" \
   --git-web-url="https://github.com/plantoncloud/tekton-hub/blob/main/tasks/buildpacks.yaml" \
   --git-clone-url="https://github.com/plantoncloud/tekton-hub.git" \
   --git-file-path="tasks/buildpacks.yaml" \
-  --overview-markdown-file=tasks/buildpacks.md \
+  --overview-markdown-file=buildpacks.md \
   --tags="container-build,buildpacks,cnb" \
   --platform
 
 # Validate the manifest
-planton tekton task validate --yaml-file=tasks/buildpacks.yaml
+planton tekton task validate --yaml-file=buildpacks.yaml
 ```
 
 ## Purpose

@@ -5,18 +5,18 @@
 ```bash
 # Register this pipeline
 planton tekton pipeline register \
-  --yaml-file=pipelines/dockerfile.yaml \
+  --yaml-file=dockerfile.yaml \
   --name="Build and Push Image with Kaniko" \
   --description="Build container images using Dockerfile with BuildKit and generate Kustomize manifests" \
   --git-web-url="https://github.com/plantoncloud/tekton-hub/blob/main/pipelines/dockerfile.yaml" \
   --git-clone-url="https://github.com/plantoncloud/tekton-hub.git" \
   --git-file-path="pipelines/dockerfile.yaml" \
-  --overview-markdown-file=pipelines/dockerfile.md \
+  --overview-markdown-file=dockerfile.md \
   --tags="pipeline,dockerfile,buildkit,container-build,kustomize" \
   --platform
 
 # Validate the manifest
-planton tekton pipeline validate --yaml-file=pipelines/dockerfile.yaml
+planton tekton pipeline validate --yaml-file=dockerfile.yaml
 ```
 
 ## Purpose
