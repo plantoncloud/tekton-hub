@@ -68,16 +68,14 @@ spec:
     ########################################################################
     - name: git-checkout
       taskRef:
-        resolver: hub
+        resolver: git
         params:
-          - name: type
-            value: tekton
-          - name: kind
-            value: task
-          - name: name
-            value: git-clone
-          - name: version
-            value: "0.9"
+          - name: url
+            value: "https://github.com/plantoncloud/tekton-hub.git"
+          - name: revision
+            value: "main"
+          - name: pathInRepo
+            value: "tasks/git-clone.yaml"
       params:
         - name: url
           value: "$(params.git-url)"
