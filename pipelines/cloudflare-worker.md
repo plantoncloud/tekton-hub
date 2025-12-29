@@ -39,6 +39,7 @@ Specialized pipeline for Cloudflare Workers that bundles JavaScript/TypeScript c
 - **git-revision** (default: "main") - Git revision to checkout
 - **git-branch** (default: "") - Git branch name
 - **project-root** (default: ".") - Relative path to project root inside cloned repo
+- **package-manager-directory** (default: "") - Directory to run package manager install from (defaults to project-root if empty, set to "." for monorepo workspaces)
 - **sparse-checkout-directories** (default: "") - Comma-separated directory patterns for sparse checkout
 
 ### R2 Storage Parameters
@@ -75,6 +76,12 @@ Auto-detects package manager and installs dependencies.
 
 **Runs after**: git-checkout  
 **Image**: node:20-alpine  
+
+**Directory resolution**:
+- If `package-manager-directory` is set, installs from that directory
+- Otherwise, installs from `project-root`
+- This enables monorepo support where `yarn install` runs at workspace root while wrangler builds happen in the worker subdirectory
+
 **Detection logic**:
 - Checks for yarn.lock → uses Yarn
 - Checks for pnpm-lock.yaml → uses pnpm
@@ -178,6 +185,31 @@ Choose this pipeline for:
 - Workers requiring build/bundle step
 - TypeScript or modern JavaScript workers
 - Multi-environment worker deployments
+
+## Monorepo Support
+
+For monorepos using yarn/npm/pnpm workspaces with `workspace:*` protocol dependencies, set `package-manager-directory` to the workspace root:
+
+**Standalone worker** (default behavior):
+```yaml
+params:
+  - name: project-root
+    value: "my-worker"
+  # package-manager-directory defaults to project-root
+```
+
+**Monorepo with yarn workspaces**:
+```yaml
+params:
+  - name: project-root
+    value: "backend/services/my-worker"
+  - name: package-manager-directory
+    value: "."
+  - name: sparse-checkout-directories
+    value: "package.json,.yarnrc.yml,yarn.lock,shared/packages,backend/services/my-worker"
+```
+
+This runs `yarn install` at the monorepo root (resolving `workspace:*` dependencies) while wrangler builds from the worker's `project-root`.
 
 ## Output Artifacts
 
