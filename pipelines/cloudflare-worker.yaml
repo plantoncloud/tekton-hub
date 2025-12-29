@@ -22,6 +22,10 @@ spec:
       type: string
       description: "Relative path to the project's root inside the cloned repo"
       default: "."
+    - name: package-manager-directory
+      type: string
+      description: "Directory to run package manager install from (defaults to project-root, set to '.' for monorepo workspaces)"
+      default: ""
     - name: sparse-checkout-directories
       type: string
       description: "list of comma separated directory patterns to git-clone Task's sparseCheckoutDirectories param"
@@ -100,13 +104,23 @@ spec:
           - name: source
         params:
           - name: project-root
+          - name: package-manager-directory
         steps:
           - name: install
             image: node:20-alpine
-            workingDir: /workspace/source/$(params.project-root)
+            workingDir: /workspace/source
             script: |
               #!/bin/sh
               set -e
+              
+              # Determine install directory (defaults to project-root if not specified)
+              INSTALL_DIR="$(params.package-manager-directory)"
+              if [ -z "$INSTALL_DIR" ]; then
+                INSTALL_DIR="$(params.project-root)"
+              fi
+              
+              cd "$INSTALL_DIR"
+              echo "Installing dependencies in: $INSTALL_DIR"
               
               echo "Detecting package manager..."
               
@@ -130,6 +144,8 @@ spec:
       params:
         - name: project-root
           value: "$(params.project-root)"
+        - name: package-manager-directory
+          value: "$(params.package-manager-directory)"
       workspaces:
         - name: source
 
