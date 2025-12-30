@@ -168,42 +168,48 @@ spec:
         steps:
           - name: bundle
             image: node:20-alpine
-            workingDir: /workspace/source/$(params.project-root)
+            workingDir: /workspace/source
             script: |
               #!/bin/sh
               set -e
               
-              echo "Bundling Cloudflare Worker..."
+              PROJECT_ROOT="$(params.project-root)"
               
-              # Check if wrangler.toml exists
-              if [ ! -f "wrangler.toml" ]; then
-                echo "ERROR: wrangler.toml not found in project root"
+              echo "Bundling Cloudflare Worker..."
+              echo "Project root: $PROJECT_ROOT"
+              
+              # Check if wrangler.toml exists at project root
+              if [ ! -f "$PROJECT_ROOT/wrangler.toml" ]; then
+                echo "ERROR: wrangler.toml not found at $PROJECT_ROOT/wrangler.toml"
                 exit 1
               fi
               
-              # Bundle the worker (dry-run to generate bundle without deploying)
-              npx wrangler deploy --dry-run --outdir=dist
+              # Bundle the worker from repo root with --config pointing to project's wrangler.toml
+              # This allows esbuild to resolve workspace dependencies from node_modules at repo root
+              npx wrangler deploy --dry-run \
+                --config "$PROJECT_ROOT/wrangler.toml" \
+                --outdir "$PROJECT_ROOT/dist"
               
               # Verify bundle was created
-              if [ ! -f "dist/index.js" ]; then
-                echo "ERROR: Bundle not created at dist/index.js"
+              if [ ! -f "$PROJECT_ROOT/dist/index.js" ]; then
+                echo "ERROR: Bundle not created at $PROJECT_ROOT/dist/index.js"
                 exit 1
               fi
               
               echo "Bundle created successfully"
               
               # Calculate SHA256 hash
-              HASH=$(sha256sum dist/index.js | cut -d' ' -f1)
+              HASH=$(sha256sum "$PROJECT_ROOT/dist/index.js" | cut -d' ' -f1)
               echo -n "$HASH" > $(results.bundle-hash.path)
               echo "Bundle hash: $HASH"
               
               # Get bundle size in bytes
-              SIZE=$(stat -c%s dist/index.js 2>/dev/null || stat -f%z dist/index.js)
+              SIZE=$(stat -c%s "$PROJECT_ROOT/dist/index.js" 2>/dev/null || stat -f%z "$PROJECT_ROOT/dist/index.js")
               echo -n "$SIZE" > $(results.bundle-size.path)
               echo "Bundle size: $SIZE bytes"
               
               # Show bundle info
-              ls -lh dist/index.js
+              ls -lh "$PROJECT_ROOT/dist/index.js"
       params:
         - name: project-root
           value: "$(params.project-root)"
@@ -231,22 +237,25 @@ spec:
         steps:
           - name: upload
             image: amazon/aws-cli:latest
-            workingDir: /workspace/source/$(params.project-root)
+            workingDir: /workspace/source
             script: |
               #!/bin/bash
               set -e
+              
+              PROJECT_ROOT="$(params.project-root)"
               
               # Read R2 credentials from workspace mount
               export AWS_ACCESS_KEY_ID=$(cat /workspace/r2-credentials/access-key-id)
               export AWS_SECRET_ACCESS_KEY=$(cat /workspace/r2-credentials/secret-access-key)
               
               echo "Uploading worker bundle to R2..."
+              echo "Project root: $PROJECT_ROOT"
               echo "Bucket: $(params.r2-bucket-name)"
               echo "Key: $(params.r2-object-key)"
               
               # Upload to R2 using S3-compatible API
               aws s3 cp \
-                dist/index.js \
+                "$PROJECT_ROOT/dist/index.js" \
                 s3://$(params.r2-bucket-name)/$(params.r2-object-key) \
                 --endpoint-url $(params.r2-endpoint-url)
               

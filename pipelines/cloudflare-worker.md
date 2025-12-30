@@ -94,14 +94,17 @@ Auto-detects package manager and installs dependencies.
 Bundles the Cloudflare Worker using Wrangler CLI.
 
 **Runs after**: install-dependencies  
-**Image**: node:20-alpine
+**Image**: node:20-alpine  
+**Working directory**: `/workspace/source` (repository root)
 
 **Operations**:
-1. Verifies `wrangler.toml` exists in project root
-2. Runs `npx wrangler deploy --dry-run --outdir=dist`
-3. Validates `dist/index.js` was created
+1. Verifies `wrangler.toml` exists at `$PROJECT_ROOT/wrangler.toml`
+2. Runs `npx wrangler deploy --dry-run --config $PROJECT_ROOT/wrangler.toml --outdir $PROJECT_ROOT/dist`
+3. Validates `$PROJECT_ROOT/dist/index.js` was created
 4. Calculates SHA256 hash of bundle
 5. Measures bundle size in bytes
+
+**Why run from repo root?** Wrangler uses esbuild for bundling. When using yarn workspaces, dependencies are installed at the monorepo root's `node_modules/`. Running wrangler from the repo root with `--config` ensures esbuild can resolve workspace package symlinks (e.g., `@planton/protos`) correctly.
 
 **Results**:
 - `bundle-hash`: SHA256 hash of bundled script
@@ -112,12 +115,13 @@ Bundles the Cloudflare Worker using Wrangler CLI.
 Uploads the bundle to Cloudflare R2 using S3-compatible API.
 
 **Runs after**: bundle-worker  
-**Image**: amazon/aws-cli:latest
+**Image**: amazon/aws-cli:latest  
+**Working directory**: `/workspace/source` (repository root)
 
 **Operations**:
 1. Reads R2 credentials from r2-credentials workspace
 2. Sets AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
-3. Uploads `dist/index.js` to R2 bucket at specified object key
+3. Uploads `$PROJECT_ROOT/dist/index.js` to R2 bucket at specified object key
 4. Constructs artifact URL
 
 **Result**:
@@ -188,7 +192,37 @@ Choose this pipeline for:
 
 ## Monorepo Support
 
-For monorepos using yarn/npm/pnpm workspaces with `workspace:*` protocol dependencies, set `package-manager-directory` to the workspace root:
+For monorepos using yarn/npm/pnpm workspaces with `workspace:*` protocol dependencies, set `package-manager-directory` to the workspace root.
+
+### How It Works
+
+```mermaid
+flowchart TB
+    subgraph install [install-dependencies]
+        I1["cd package-manager-directory<br/>(monorepo root)"]
+        I2["yarn install"]
+        I3["node_modules/@workspace/pkg<br/>symlink created"]
+        I1 --> I2 --> I3
+    end
+
+    subgraph bundle [bundle-worker]
+        B1["workingDir: /workspace/source<br/>(repo root)"]
+        B2["wrangler --config<br/>project-root/wrangler.toml"]
+        B3["esbuild resolves<br/>workspace packages"]
+        B4["Output: project-root/dist/index.js"]
+        B1 --> B2 --> B3 --> B4
+    end
+
+    subgraph upload [upload-to-r2]
+        U1["aws s3 cp<br/>project-root/dist/index.js"]
+        U2["Bundle in R2"]
+        U1 --> U2
+    end
+
+    install --> bundle --> upload
+```
+
+### Configuration Examples
 
 **Standalone worker** (default behavior):
 ```yaml
@@ -209,7 +243,15 @@ params:
     value: "package.json,.yarnrc.yml,yarn.lock,shared/packages,backend/services/my-worker"
 ```
 
-This runs `yarn install` at the monorepo root (resolving `workspace:*` dependencies) while wrangler builds from the worker's `project-root`.
+### Why This Design?
+
+When using yarn workspaces, dependencies are hoisted to the monorepo root's `node_modules/`. Wrangler uses esbuild for bundling, and esbuild resolves imports from its working directory. By running wrangler from the repository root with `--config` pointing to the worker's `wrangler.toml`, esbuild can:
+
+1. Find `node_modules/` at the current working directory
+2. Resolve workspace package symlinks (e.g., `@planton/protos` → `apis/stubs/ts/`)
+3. Bundle all dependencies correctly
+
+The `--config` flag tells wrangler where to find the configuration, and paths in `wrangler.toml` (like `main = "src/index.ts"`) are resolved relative to the config file location.
 
 ## Output Artifacts
 
