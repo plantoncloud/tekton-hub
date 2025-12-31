@@ -186,9 +186,10 @@ spec:
               
               # Bundle the worker from repo root with --config pointing to project's wrangler.toml
               # This allows esbuild to resolve workspace dependencies from node_modules at repo root
+              # Note: --outdir is relative to wrangler.toml location, so use "dist" not "$PROJECT_ROOT/dist"
               npx wrangler deploy --dry-run \
                 --config "$PROJECT_ROOT/wrangler.toml" \
-                --outdir "$PROJECT_ROOT/dist"
+                --outdir dist
               
               # Verify bundle was created
               if [ ! -f "$PROJECT_ROOT/dist/index.js" ]; then
