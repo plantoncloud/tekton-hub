@@ -8,8 +8,8 @@ planton tekton pipeline register \
   --yaml-file=kustomize.yaml \
   --name="Build Kustomize Directory" \
   --description="Generate Kubernetes manifests from Kustomize directory for all environments" \
-  --git-web-url="https://github.com/plantoncloud/tekton-hub/blob/main/pipelines/kustomize.yaml" \
-  --git-clone-url="https://github.com/plantoncloud/tekton-hub.git" \
+  --git-web-url="https://github.com/plantonhq/tekton-hub/blob/main/pipelines/kustomize.yaml" \
+  --git-clone-url="https://github.com/plantonhq/tekton-hub.git" \
   --git-file-path="pipelines/kustomize.yaml" \
   --overview-markdown-file=kustomize.md \
   --tags="pipeline,kustomize,kubernetes,manifests" \

@@ -68,7 +68,7 @@ spec:
         resolver: git
         params:
           - name: url
-            value: "https://github.com/plantoncloud/tekton-hub.git"
+            value: "https://github.com/plantonhq/tekton-hub.git"
           - name: revision
             value: "main"
           - name: pathInRepo
@@ -122,7 +122,7 @@ spec:
         resolver: git
         params:
           - name: url
-            value: "https://github.com/plantoncloud/tekton-hub.git"
+            value: "https://github.com/plantonhq/tekton-hub.git"
           - name: revision
             value: "main"
           - name: pathInRepo
@@ -153,7 +153,7 @@ spec:
         resolver: git
         params:
           - name: url
-            value: "https://github.com/plantoncloud/tekton-hub.git"
+            value: "https://github.com/plantonhq/tekton-hub.git"
           - name: revision
             value: "main"
           - name: pathInRepo

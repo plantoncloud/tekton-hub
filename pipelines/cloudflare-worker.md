@@ -8,8 +8,8 @@ planton tekton pipeline register \
   --yaml-file=cloudflare-worker.yaml \
   --name="Build and Upload Cloudflare Worker" \
   --description="Build Cloudflare Worker bundle and upload to R2 storage with Kustomize manifest generation" \
-  --git-web-url="https://github.com/plantoncloud/tekton-hub/blob/main/pipelines/cloudflare-worker.yaml" \
-  --git-clone-url="https://github.com/plantoncloud/tekton-hub.git" \
+  --git-web-url="https://github.com/plantonhq/tekton-hub/blob/main/pipelines/cloudflare-worker.yaml" \
+  --git-clone-url="https://github.com/plantonhq/tekton-hub.git" \
   --git-file-path="pipelines/cloudflare-worker.yaml" \
   --overview-markdown-file=cloudflare-worker.md \
   --tags="pipeline,cloudflare,workers,r2,serverless" \

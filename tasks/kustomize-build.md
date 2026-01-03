@@ -8,8 +8,8 @@ planton tekton task register \
   --yaml-file=kustomize-build.yaml \
   --name="Kustomize Build" \
   --description="Build Kustomize overlays and store manifests in ConfigMap" \
-  --git-web-url="https://github.com/plantoncloud/tekton-hub/blob/main/tasks/kustomize-build.yaml" \
-  --git-clone-url="https://github.com/plantoncloud/tekton-hub.git" \
+  --git-web-url="https://github.com/plantonhq/tekton-hub/blob/main/tasks/kustomize-build.yaml" \
+  --git-clone-url="https://github.com/plantonhq/tekton-hub.git" \
   --git-file-path="tasks/kustomize-build.yaml" \
   --overview-markdown-file=kustomize-build.md \
   --tags="kustomize,kubernetes,manifests" \
@@ -127,7 +127,7 @@ Typically runs after image build steps to generate deployment manifests that ref
     resolver: git
     params:
       - name: url
-        value: "https://github.com/plantoncloud/tekton-hub.git"
+        value: "https://github.com/plantonhq/tekton-hub.git"
       - name: pathInRepo
         value: "tasks/kustomize-build.yaml"
   params:

@@ -58,7 +58,7 @@ taskRef:
   resolver: git
   params:
     - name: url
-      value: "https://github.com/plantoncloud/tekton-hub.git"
+      value: "https://github.com/plantonhq/tekton-hub.git"
     - name: revision
       value: "main"
     - name: pathInRepo
@@ -72,8 +72,8 @@ planton tekton task register \
   --yaml-file=tasks/buildkit.yaml \
   --name="BuildKit Daemon-less" \
   --description="Build container images using BuildKit in daemon-less mode" \
-  --git-web-url="https://github.com/plantoncloud/tekton-hub/blob/main/tasks/buildkit.yaml" \
-  --git-clone-url="https://github.com/plantoncloud/tekton-hub.git" \
+  --git-web-url="https://github.com/plantonhq/tekton-hub/blob/main/tasks/buildkit.yaml" \
+  --git-clone-url="https://github.com/plantonhq/tekton-hub.git" \
   --git-file-path="tasks/buildkit.yaml" \
   --tags="container-build,buildkit" \
   --platform

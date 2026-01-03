@@ -8,8 +8,8 @@ planton tekton task register \
   --yaml-file=buildpacks-custom.yaml \
   --name="Buildpacks Custom" \
   --description="Customizable Buildpacks builds with extra bindings and certificate support" \
-  --git-web-url="https://github.com/plantoncloud/tekton-hub/blob/main/tasks/buildpacks-custom.yaml" \
-  --git-clone-url="https://github.com/plantoncloud/tekton-hub.git" \
+  --git-web-url="https://github.com/plantonhq/tekton-hub/blob/main/tasks/buildpacks-custom.yaml" \
+  --git-clone-url="https://github.com/plantonhq/tekton-hub.git" \
   --git-file-path="tasks/buildpacks-custom.yaml" \
   --overview-markdown-file=buildpacks-custom.md \
   --tags="container-build,buildpacks,cnb,custom,certificates" \
